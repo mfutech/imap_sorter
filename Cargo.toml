@@ -1,0 +1,15 @@
+[package]
+name = "imap_sorter"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+confy = "0.5.1"
+env_logger = "0.10.0"
+imap = "2.4.1"
+imap-proto = "0.16.2"
+log = "0.4.20"
+native-tls = "0.2.11"
+serde = { version = "1.0.190", features = ["derive"] }
