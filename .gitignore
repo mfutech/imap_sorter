@@ -1,5 +1,4 @@
 /target
 /config.*
 !config.ini.example
-/.vscode
 
