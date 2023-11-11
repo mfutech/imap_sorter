@@ -1,10 +1,47 @@
 extern crate imap;
-//extern crate imap_proto;
 extern crate native_tls;
+//use std::{path::Path, fmt::format};
 use std::path::Path;
+// use imap_proto;
+use imap_proto::types::Address;
 
 mod config;
 mod rules;
+
+fn get_addresses(addresses_vec: &Vec<Address<'_>>) -> Result<String, String> {
+    // scan all Vec<Addresses<>> and make a string 
+    // of all addreeses in one string coma separated
+    Ok(addresses_vec
+        // goes though all addresses
+        .iter()
+        .map(|addr| {
+            // extract mailbox and host and concatenate with a @
+            format!(
+                // target format
+                "{}@{}", 
+                // get mailbox
+                std::str::from_utf8(match addr.mailbox.as_ref() {
+                    // if no host, replace by uknown
+                    Some(mailbox) => mailbox,
+                    _ => "unknown".as_bytes(),
+                    
+                })
+                .unwrap(),
+                // get host
+                std::str::from_utf8(match addr.host.as_ref() {
+                    // if no host, replace by uknown
+                    Some(host) => host,
+                    _ => "unknown".as_bytes(),
+
+                })
+                .unwrap(),
+            )
+        })
+        // collect resutl in a Vec<String>
+        .collect::<Vec<String>>()
+        // join them in a string, separated by , 
+        .join(", "))
+}
 
 fn search_and_move(
     imap_session: &mut imap::Session<native_tls::TlsStream<std::net::TcpStream>>,
@@ -18,7 +55,7 @@ fn search_and_move(
     println!("search for : {}", rule.filter);
     let search_set = imap_session.search(rule.filter).unwrap();
     if search_set.len() == 0 {
-        return Ok(Some("nothing to move".to_string()))
+        return Ok(Some("nothing to move".to_string()));
     }
 
     // println!("search set: {:?}", search_set);
@@ -33,6 +70,15 @@ fn search_and_move(
     let messages = imap_session.fetch(search.clone(), "ALL")?;
     //println!("messages: {:?}", messages);
 
+    // print header of found mails
+    println!(
+        "{date:<22} {subject:<40} {from:<30} {to:<30}",
+        date = "date",
+        subject = "subject",
+        from = "from",
+        to = "to"
+    );
+
     for message in &messages {
         let envelope = message.envelope().expect("message missing envelope");
         //printlnln!("envelope: {:?}", envelope);
@@ -44,38 +90,33 @@ fn search_and_move(
         let subject =
             match std::str::from_utf8(envelope.subject.expect("envelopem missing subject")) {
                 Ok(subject) => subject.to_string(),
-                Err(error) => format!("Enveloppe subject not UTF8 : {}", error),
+                Err(error) => format!(
+                    "Enveloppe subject not UTF8 : {}", error),
             };
 
-        let froms = envelope.from.as_ref().expect("envelope missing from");
-        //printlnln!("froms {:?}", froms);
-        let from = std::str::from_utf8(froms[0].mailbox.unwrap()).unwrap();
-        let from_host = std::str::from_utf8(froms[0].host.unwrap()).unwrap();
-
-        let sender = envelope.sender.as_ref().unwrap();
-        let sender_mailbox = std::str::from_utf8(sender[0].mailbox.unwrap()).unwrap();
-        let sender_host = std::str::from_utf8(sender[0].host.unwrap()).unwrap();
+        let from_addresses = get_addresses(envelope.from.as_ref().expect("no from in enveloppe")).unwrap();
+        // let sender_addresses = get_addresses(envelope.sender.as_ref().expect("no sender in enveloppe")).unwrap();
+        let to_addresses = get_addresses(envelope.to.as_ref().expect("no to in enveloppe")).unwrap();
 
         println!(
-            "date: {}\t subject: {}\t from:{}@{}\t sender: {}@{}",
-            date, subject, from, from_host, sender_mailbox, sender_host
+            "{}",
+            format!(
+                "{date:<22} {subject:<40} {from:<30} {to:<30}",
+                date = date.chars().take(22).collect::<String>(),
+                subject = subject.chars().take(40).collect::<String>(),
+                from = from_addresses.chars().take(30).collect::<String>(),
+                to = to_addresses.chars().take(30).collect::<String>()
+            )
         );
     }
 
-    // extract the message's body
-    /*
-        let body = message.body().expect("message did not have a body!");
-        let body = std::str::from_utf8(body)
-            .expect("message was not valid utf-8")
-            .to_string();
-    */
     if rule.enable {
         imap_session.mv(search, rule.target)?;
     } else {
         println!("rule disabled, skipping move")
     }
 
-    Ok(Some("".to_string()))
+    Ok(Some(format!("processed {} messages", search_set.len())))
 }
 
 fn main() {
@@ -113,7 +154,7 @@ fn main() {
         println!("filter : {}", rule.filter);
         println!("target : {}", rule.target);
         match search_and_move(&mut imap_session, rule) {
-            Ok(success) => println!("{:?}", success),
+            Ok(success) => println!("{}", success.unwrap()),
             Err(failed) => println!("FAILED: {:?}", failed),
         }
     }
