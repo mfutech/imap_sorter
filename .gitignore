@@ -1,4 +1,7 @@
+/.vscode
 /target
 /config.*
 !config.ini.example
+/rules*
+!rules.yaml.example
 
