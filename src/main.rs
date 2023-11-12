@@ -91,11 +91,16 @@ fn search_and_move(
                 Err(error) => format!("Enveloppe subject not UTF8 : {}", error),
             };
 
-        let from_addresses =
-            get_addresses(envelope.from.as_ref().expect("no from in enveloppe")).unwrap();
+        let from_addresses = match envelope.from.as_ref() {
+            Some(froms) => get_addresses(froms).unwrap(),
+            _ => "FROM_UKN".to_string()
+        };
+            
         // let sender_addresses = get_addresses(envelope.sender.as_ref().expect("no sender in enveloppe")).unwrap();
-        let to_addresses =
-            get_addresses(envelope.to.as_ref().expect("no to in enveloppe")).unwrap();
+        let to_addresses =match envelope.to.as_ref() {
+            Some(tos) => get_addresses(tos).unwrap(),
+            _ => "TO_UNKN".to_string()
+        };
 
         println!(
             "{}",
