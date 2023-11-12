@@ -2,5 +2,5 @@ rules:
   - name: title
     filter: "FROM example@example.com"
     target: "targe_folder"
-    enable: True
+    enable: False
 
