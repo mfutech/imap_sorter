@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = { version = "1.0.75", features = ["std"] }
+clap = { version = "4.4.8", features = ["derive"] }
 confy = "0.5.1"
 env_logger = "0.10.0"
 imap = "2.4.1"

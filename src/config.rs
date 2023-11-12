@@ -1,7 +1,3 @@
-// cli arguments
-//use structconf::{clap, StructConf, Error};
-//use structconf::clap::Arg;
-
 use serde::{Deserialize, Serialize};
 
 // Structure holding configuration of the application
@@ -25,10 +21,3 @@ impl ::std::default::Default for Configuration {
         }
     }
 }
-
-/*
-pub fn get_config() -> Result<Configuration, confy::ConfyError> {
-    let conf = confy::load("imap-sorter", None)?;
-    Ok(conf)
-}
-*/
