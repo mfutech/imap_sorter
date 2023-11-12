@@ -137,7 +137,14 @@ fn main() {
 
     // we pass in the domain twice to check that the server's TLS
     // certificate is valid for the domain we're connecting to.
-    let client = imap::connect((domain, port), domain, &tls).unwrap();
+    let client = match imap::connect((domain, port), domain, &tls) {
+        Ok(client) => client,
+        Err(error) => {
+            println!("Error with IMAP server : {}", error);
+            return;
+        }
+
+    };
 
     // the client we have here is unauthenticated.
     // to do anything useful with the e-mails, we need to log in
