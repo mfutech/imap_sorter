@@ -9,7 +9,7 @@ mod config;
 mod rules;
 
 fn get_addresses(addresses_vec: &Vec<Address<'_>>) -> Result<String, String> {
-    // scan all Vec<Addresses<>> and make a string 
+    // scan all Vec<Addresses<>> and make a string
     // of all addreeses in one string coma separated
     Ok(addresses_vec
         // goes though all addresses
@@ -18,13 +18,12 @@ fn get_addresses(addresses_vec: &Vec<Address<'_>>) -> Result<String, String> {
             // extract mailbox and host and concatenate with a @
             format!(
                 // target format
-                "{}@{}", 
+                "{}@{}",
                 // get mailbox
                 std::str::from_utf8(match addr.mailbox.as_ref() {
                     // if no host, replace by uknown
                     Some(mailbox) => mailbox,
                     _ => "unknown".as_bytes(),
-                    
                 })
                 .unwrap(),
                 // get host
@@ -32,14 +31,13 @@ fn get_addresses(addresses_vec: &Vec<Address<'_>>) -> Result<String, String> {
                     // if no host, replace by uknown
                     Some(host) => host,
                     _ => "unknown".as_bytes(),
-
                 })
                 .unwrap(),
             )
         })
         // collect resutl in a Vec<String>
         .collect::<Vec<String>>()
-        // join them in a string, separated by , 
+        // join them in a string, separated by ,
         .join(", "))
 }
 
@@ -52,8 +50,8 @@ fn search_and_move(
 
     // fetch message number 1 in this mailbox, along with its RFC822 field.
     // RFC 822 dictates the format of the body of e-mails
-    println!("search for : {}", rule.filter);
-    let search_set = imap_session.search(rule.filter).unwrap();
+    // println!("search for : {}", rule.filter);
+    let search_set = imap_session.search(rule.filter)?;
     if search_set.len() == 0 {
         return Ok(Some("nothing to move".to_string()));
     }
@@ -90,13 +88,14 @@ fn search_and_move(
         let subject =
             match std::str::from_utf8(envelope.subject.expect("envelopem missing subject")) {
                 Ok(subject) => subject.to_string(),
-                Err(error) => format!(
-                    "Enveloppe subject not UTF8 : {}", error),
+                Err(error) => format!("Enveloppe subject not UTF8 : {}", error),
             };
 
-        let from_addresses = get_addresses(envelope.from.as_ref().expect("no from in enveloppe")).unwrap();
+        let from_addresses =
+            get_addresses(envelope.from.as_ref().expect("no from in enveloppe")).unwrap();
         // let sender_addresses = get_addresses(envelope.sender.as_ref().expect("no sender in enveloppe")).unwrap();
-        let to_addresses = get_addresses(envelope.to.as_ref().expect("no to in enveloppe")).unwrap();
+        let to_addresses =
+            get_addresses(envelope.to.as_ref().expect("no to in enveloppe")).unwrap();
 
         println!(
             "{}",
@@ -112,11 +111,14 @@ fn search_and_move(
 
     if rule.enable {
         imap_session.mv(search, rule.target)?;
-    } else {
-        println!("rule disabled, skipping move")
-    }
+    };
 
-    Ok(Some(format!("processed {} messages", search_set.len())))
+    let message = if rule.enable {
+        format!("processed {} messages", search_set.len())
+    } else {
+        format!("rule disabled, did not process {} messages", search_set.len())
+    };
+    Ok(Some(message))
 }
 
 fn main() {
@@ -150,9 +152,10 @@ fn main() {
     };
 
     for rule in rules {
-        println!("processing : {}", rule.name);
-        println!("filter : {}", rule.filter);
-        println!("target : {}", rule.target);
+        println!(
+            "processing : {:<20}filter: {}, target: {}",
+            rule.name, rule.filter, rule.target
+        );
         match search_and_move(&mut imap_session, rule) {
             Ok(success) => println!("{}", success.unwrap()),
             Err(failed) => println!("FAILED: {:?}", failed),
