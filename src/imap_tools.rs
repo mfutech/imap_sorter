@@ -72,8 +72,11 @@ pub fn search_and_move(
     for message in &messages {
         let envelope = message.envelope().expect("message missing envelope");
 
-        let date = std::str::from_utf8(envelope.date.expect("envelope missing date"))
-            .expect("Enveloppe date not UTF8");
+        let date = 
+            match envelope.date{
+                Some(date) => std::str::from_utf8(date).expect("Enveloppe date not UTF8"),
+                None => "NODATE"
+            };
 
         // subject more likely to not me utf8
         let subject =
