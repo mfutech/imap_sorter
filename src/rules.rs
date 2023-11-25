@@ -13,17 +13,24 @@ pub struct Rule {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Rules {
+pub struct FolderRule {
+    pub folder: String,
     pub rules: Vec<Rule>,
 }
 
-impl Rules {
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct RulesSet {
+    pub folders: Vec<FolderRule>,
+}
+
+impl RulesSet {
     pub fn load(file_name: &str) -> Result<Self> {
         let file =
             File::open(file_name).with_context(|| format!("Failed to open file: {}", file_name))?;
         let reader = BufReader::new(file);
-        let rules: Rules = serde_yaml::from_reader(reader)
+        let rules_set: RulesSet = serde_yaml::from_reader(reader)
             .with_context(|| format!("Failed to parse YAML file: {}", file_name))?;
-        Ok(rules)
+        Ok(rules_set)
     }
 }

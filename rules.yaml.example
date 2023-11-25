@@ -1,6 +1,23 @@
-rules:
-  - name: title
-    filter: "FROM example@example.com"
-    target: "targe_folder"
-    enable: False
+folders:
+  - folder: INBOX
+    rules:
+      - name: rule 1
+        filter: FROM john@doe.com
+        target: Jon_Mails
+        enable: false
 
+      - name: rule 2
+        filter: FROM jane@doe.com
+        target: Does/Jane_Mail
+        enable: true
+  - folder: FOOBAR
+    rules:
+      - name: rule 1
+        filter: FROM john@doe.com
+        target: Jon_Mails
+        enable: false
+
+      - name: rule 2
+        filter: FROM jane@doe.com
+        target: Does/Jane_Mail
+        enable: true

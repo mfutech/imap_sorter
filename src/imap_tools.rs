@@ -38,10 +38,11 @@ fn get_addresses(addresses_vec: &Vec<Address<'_>>) -> Result<String, String> {
 pub fn search_and_move(
     imap_session: &mut imap::Session<native_tls::TlsStream<std::net::TcpStream>>,
     rule: rules::Rule,
+    folder: String,
     nomove: bool,
 ) -> imap::error::Result<Option<String>> {
     // we want to fetch the first email in the INBOX mailbox
-    imap_session.select("INBOX")?;
+    imap_session.select(folder)?;
 
     // fetch message number 1 in this mailbox, along with its RFC822 field.
     // RFC 822 dictates the format of the body of e-mails
