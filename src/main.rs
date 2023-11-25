@@ -35,8 +35,8 @@ fn main() {
         }
     };
 
-    let rules = match rules::Rules::load(args.rules.as_str()) {
-        Ok(rules) => rules.rules,
+    let folders_rules = match rules::RulesSet::load(args.rules.as_str()) {
+        Ok(rules_set) => rules_set.folders,
         Err(error) => panic!("cannot read rules : {}", error),
     };
 
@@ -65,17 +65,20 @@ fn main() {
         .expect("cannot connect to IMAP server");
 
     // now for each rules we find message and moved them as necessary
-    for rule in rules {
-        println!(
-            "processing : {:<20}filter: {}, target: {}",
-            rule.name, rule.filter, rule.target
-        );
-        match search_and_move(&mut imap_session, rule, args.nomove) {
-            Ok(success) => println!("{}", success.unwrap()),
-            Err(failed) => println!("FAILED: {:?}", failed),
+    for folder in folders_rules {
+        let folder_name = folder.folder;
+        println!("-------------------- Processing for {} ----------", folder_name);
+        for rule in folder.rules {
+            println!(
+                "processing : {:<20}filter: {}, target: {}",
+                rule.name, rule.filter, rule.target
+            );
+            match search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove) {
+                Ok(success) => println!("{}", success.unwrap()),
+                Err(failed) => println!("FAILED: {:?}", failed),
+            }
         }
     }
-
     // be nice to the server and log out
     imap_session.logout().expect("failed to logout");
 }
