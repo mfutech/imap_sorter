@@ -1,8 +1,11 @@
 extern crate imap;
 extern crate native_tls;
+extern crate securestore;
+use std::path::Path;
 
 // cli
 use clap::Parser;
+use config::Configuration;
 
 mod config;
 mod imap_tools;
@@ -11,29 +14,53 @@ use crate::imap_tools::*;
 
 use clap;
 
-#[derive(Parser,Default,Debug)]
-#[clap(name="IMAP sorter", author = "mfutech", version = "1.0.0", 
-  about = "Process email in IMAP Inbox according to rules")]
+#[derive(Parser, Default, Debug)]
+#[clap(
+    name = "IMAP sorter",
+    author = "mfutech",
+    version = "1.0.0",
+    about = "Process email in IMAP Inbox according to rules"
+)]
 struct Args {
-    #[clap(short, long, default_value="config.ini")]
+    #[clap(short, long, default_value = "config.ini")]
     config: String,
-    #[clap(short, long, default_value="rules.yaml")]
+    #[clap(short, long, default_value = "rules.yaml")]
     rules: String,
     #[clap(short, long)]
     nomove: bool,
 }
 
-fn main() {
+fn update_config_with_secrets(config: &mut Configuration) {
+    let key_file = Path::new("secrets.key");
+    let secret_manager =
+        securestore::SecretsManager::load("secrets.json", securestore::KeySource::File(key_file))
+            .expect("Failed to load SecureStore vault!");
+    config.imap_server = match secret_manager.get("imap_server") {
+        Ok(hostname) => hostname,
+        Err(_) => config.imap_server.clone(),
+    };
+    config.imap_username = match secret_manager.get("imap_username") {
+        Ok(hostname) => hostname,
+        Err(_) => config.imap_username.clone(),
+    };
+    config.imap_password = match secret_manager.get("imap_password") {
+        Ok(hostname) => hostname,
+        Err(_) => config.imap_password.clone(),
+    };
+}
 
+fn main() {
     // let's get the argument we are called with
     let args = Args::parse();
 
-    let config: config::Configuration = match confy::load_path(args.config) {
+    let mut config: config::Configuration = match confy::load_path(args.config) {
         Ok(config) => config,
         Err(err) => {
             panic!("Failed to load configuration: {}", err);
         }
     };
+
+    update_config_with_secrets(&mut config);
 
     let folders_rules = match rules::RulesSet::load(args.rules.as_str()) {
         Ok(rules_set) => rules_set.folders,
@@ -67,7 +94,10 @@ fn main() {
     // now for each rules we find message and moved them as necessary
     for folder in folders_rules {
         let folder_name = folder.folder;
-        println!("-------------------- Processing for {} ----------", folder_name);
+        println!(
+            "-------------------- Processing for {} ----------",
+            folder_name
+        );
         for rule in folder.rules {
             println!(
                 "processing : {:<20}filter: {}, target: {}",

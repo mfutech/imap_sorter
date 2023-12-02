@@ -14,5 +14,7 @@ imap = "2.4.1"
 imap-proto = "0.10.2"
 log = "0.4.20"
 native-tls = "0.2.11"
+securestore = "0.100.0"
 serde = { version = "1.0.190", features = ["derive"] }
 serde_yaml = "0.9.27"
+ssclient = "0.100.0"

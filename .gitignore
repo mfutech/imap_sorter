@@ -4,4 +4,6 @@
 !config.ini.example
 /rules*
 !rules.yaml.example
+/key
 
+/secrets.key
