@@ -5,7 +5,6 @@ use std::path::Path;
 
 // cli
 use clap::Parser;
-use config::Configuration;
 
 mod config;
 mod imap_tools;
@@ -30,48 +29,43 @@ struct Args {
     nomove: bool,
 }
 
-fn update_config_with_secrets(config: &mut Configuration) {
-    let key_file = Path::new("secrets.key");
-    let secret_manager =
-        securestore::SecretsManager::load("secrets.json", securestore::KeySource::File(key_file))
-            .expect("Failed to load SecureStore vault!");
-    config.imap_server = match secret_manager.get("imap_server") {
-        Ok(hostname) => hostname,
-        Err(_) => config.imap_server.clone(),
-    };
-    config.imap_username = match secret_manager.get("imap_username") {
-        Ok(hostname) => hostname,
-        Err(_) => config.imap_username.clone(),
-    };
-    config.imap_password = match secret_manager.get("imap_password") {
-        Ok(hostname) => hostname,
-        Err(_) => config.imap_password.clone(),
-    };
-}
-
 fn main() {
     // let's get the argument we are called with
     let args = Args::parse();
 
-    let mut config: config::Configuration = match confy::load_path(args.config) {
+    let config: config::Configuration = match confy::load_path(args.config) {
         Ok(config) => config,
         Err(err) => {
             panic!("Failed to load configuration: {}", err);
         }
     };
 
-    update_config_with_secrets(&mut config);
-
     let folders_rules = match rules::RulesSet::load(args.rules.as_str()) {
         Ok(rules_set) => rules_set.folders,
         Err(error) => panic!("cannot read rules : {}", error),
     };
 
-    // connecting to IMAP server
-    let domain = config.imap_server.as_str();
+    // connect to secret manager
+    let key_file = Path::new("secrets.key");
+    let secret_manager =
+        securestore::SecretsManager::load("config.json", securestore::KeySource::File(key_file))
+            .expect("Failed to load SecureStore vault!");
+
+    // connecting to IMAP server, using parameter from vault (config.json) if exsit if not try config.ini
+    let domain = match secret_manager.get("imap_server") {
+        Ok(hostname) => hostname,
+        Err(_) => config.imap_server,
+    };
+    let domain = domain.as_str();
     let port: u16 = config.imap_port;
-    let username = config.imap_username;
-    let password = config.imap_password;
+    let username = match secret_manager.get("imap_username") {
+        Ok(username) => username,
+        Err(_) => config.imap_username,
+    };
+    let password = match secret_manager.get("imap_password") {
+        Ok(password) => password,
+        Err(_) => config.imap_password.clone(),
+    };
     let tls = native_tls::TlsConnector::builder().build().unwrap();
 
     // we pass in the domain twice to check that the server's TLS
