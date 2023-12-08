@@ -109,7 +109,7 @@ pub fn search_and_move(
     }
 
     // skip move is rule disabled or running in simulation
-    if rule.enable || nomove{
+    if rule.enable && ! nomove{
         imap_session.mv(search, rule.target)?;
     }
 

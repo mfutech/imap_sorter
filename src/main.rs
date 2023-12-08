@@ -23,8 +23,8 @@ use clap;
 struct Args {
     #[clap(short, long, default_value = "config.ini")]
     config: String,
-    #[clap(short, long, default_value = "rules.yaml")]
-    rules: String,
+    #[clap(short, long)]
+    rules: Option<String>,
     #[clap(short, long)]
     nomove: bool,
 }
@@ -39,17 +39,25 @@ fn main() {
             panic!("Failed to load configuration: {}", err);
         }
     };
+    let rules_path = match args.rules {
+        Some(path) => path,
+        None => config.rules_conf_path,
+    };
 
-    let folders_rules = match rules::RulesSet::load(args.rules.as_str()) {
+    println!("rules path: {}", rules_path);
+
+    let folders_rules = match rules::RulesSet::load(rules_path.as_str()) {
         Ok(rules_set) => rules_set.folders,
         Err(error) => panic!("cannot read rules : {}", error),
     };
 
     // connect to secret manager
-    let key_file = Path::new("secrets.key");
-    let secret_manager =
-        securestore::SecretsManager::load("config.json", securestore::KeySource::File(key_file))
-            .expect("Failed to load SecureStore vault!");
+    let key_file = Path::new(config.key_path.as_str());
+    let secret_manager = securestore::SecretsManager::load(
+        config.secure_store_path,
+        securestore::KeySource::File(key_file),
+    )
+    .expect("Failed to load SecureStore vault!");
 
     // connecting to IMAP server, using parameter from vault (config.json) if exsit if not try config.ini
     let domain = match secret_manager.get("imap_server") {
