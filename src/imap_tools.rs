@@ -39,7 +39,6 @@ pub fn search_and_move(
     rule: rules::Rule,
     folder: String,
     nomove: bool,
-    verbose: bool,
 ) -> imap::error::Result<Option<String>> {
     // we want to fetch the first email in the INBOX mailbox
     imap_session.select(folder)?;
@@ -62,15 +61,13 @@ pub fn search_and_move(
     let messages = imap_session.fetch(search.clone(), "ALL")?;
 
     // print header of found mails
-    if verbose {
-        println!(
-            "{date:<22} {subject:<40} {from:<30} {to:<30}",
-            date = "date",
-            subject = "subject",
-            from = "from",
-            to = "to"
-        );
-    };
+    log::info!(
+        "{date:<22} {subject:<40} {from:<30} {to:<30}",
+        date = "date",
+        subject = "subject",
+        from = "from",
+        to = "to"
+    );
 
     for message in &messages {
         let envelope = message.envelope().expect("message missing envelope");
@@ -97,15 +94,13 @@ pub fn search_and_move(
             _ => "TO_UNKN".to_string(),
         };
 
-        if verbose {
-            println!(
-                "{date:<22} {subject:<40} {from:<30} {to:<30}",
-                date = date.chars().take(22).collect::<String>(),
-                subject = subject.chars().take(40).collect::<String>(),
-                from = from_addresses.chars().take(30).collect::<String>(),
-                to = to_addresses.chars().take(30).collect::<String>()
-            )
-        };
+        log::info!(
+            "{date:<22} {subject:<40} {from:<30} {to:<30}",
+            date = date.chars().take(22).collect::<String>(),
+            subject = subject.chars().take(40).collect::<String>(),
+            from = from_addresses.chars().take(30).collect::<String>(),
+            to = to_addresses.chars().take(30).collect::<String>()
+        );
     }
 
     // do the actual move or not according to flags and set return a message

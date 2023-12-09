@@ -17,4 +17,6 @@ native-tls = "0.2.11"
 securestore = "0.100.0"
 serde = { version = "1.0.190", features = ["derive"] }
 serde_yaml = "0.9.27"
+simple_logger = { version = "4.3.0", default-features = false}
 ssclient = "0.100.0"
+

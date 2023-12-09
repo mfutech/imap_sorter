@@ -450,6 +450,7 @@ dependencies = [
  "securestore",
  "serde",
  "serde_yaml",
+ "simple_logger",
  "ssclient",
 ]
 
@@ -825,6 +826,16 @@ dependencies = [
  "ryu",
  "serde",
  "unsafe-libyaml",
+]
+
+[[package]]
+name = "simple_logger"
+version = "4.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da0ca6504625ee1aa5fda33913d2005eab98c7a42dd85f116ecce3ff54c9d3ef"
+dependencies = [
+ "log",
+ "windows-sys",
 ]
 
 [[package]]

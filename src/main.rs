@@ -6,6 +6,9 @@ use std::path::Path;
 // cli
 use clap::Parser;
 
+// log
+use std::io::Write;
+
 mod config;
 mod imap_tools;
 mod rules;
@@ -29,11 +32,39 @@ struct Args {
     nomove: bool,
     #[clap(short, long)]
     silent: bool,
+    #[clap(short, long)]
+    debug: bool,
+}
+
+fn setup_logging(args: &Args) {
+    // setup logging according to log level (default is INFO)
+    // env_logger::init();
+    let logfilter = if args.silent {
+        log::LevelFilter::Warn
+    } else if args.debug {
+        log::LevelFilter::Debug
+    } else {
+        log::LevelFilter::Info
+    };
+    env_logger::builder()
+        .filter_level(logfilter)
+        .format(|buf, record| {
+            // we make the "info" logging be straight output
+            if record.level() == log::Level::Info {
+                writeln!(buf, "{}", record.args())
+            } else {
+                // otherwise print with log level information
+                writeln!(buf, "{}: {}", record.level(), record.args())
+            }
+        })
+        .init();
 }
 
 fn main() {
     // let's get the argument we are called with
     let args = Args::parse();
+
+    setup_logging(&args);
 
     let config: config::Configuration = match confy::load_path(args.config) {
         Ok(config) => config,
@@ -46,9 +77,7 @@ fn main() {
         None => config.rules_conf_path,
     };
 
-    if !args.silent {
-        println!("rules path: {}", rules_path);
-    };
+    log::debug!("rules path: {}", rules_path);
 
     let folders_rules = match rules::RulesSet::load(rules_path.as_str()) {
         Ok(rules_set) => rules_set.folders,
@@ -85,7 +114,7 @@ fn main() {
     let client = match imap::connect((domain, port), domain, &tls) {
         Ok(client) => client,
         Err(error) => {
-            println!("Error with IMAP server : {}", error);
+            log::error!("Error with IMAP server : {}", error);
             return;
         }
     };
@@ -100,26 +129,23 @@ fn main() {
     // now for each rules we find message and moved them as necessary
     for folder in folders_rules {
         let folder_name = folder.folder;
-        if !args.silent {
-            println!(
-                "-------------------- Processing for {} ----------",
-                folder_name
-            );
-        };
+        log::info!(
+            "-------------------- Processing for {} ----------",
+            folder_name
+        );
         for rule in folder.rules {
-            if !args.silent {
-                println!(
-                    "processing : {:<20}filter: {}, target: {}",
-                    rule.name, rule.filter, rule.target
-                );
-            };
-            let message = match search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove, ! args.silent) {
-                Ok(success) => format!("{}", success.unwrap()),
-                Err(failed) => format!("FAILED: {:?}", failed),
-            };
-            if !args.silent {
-                println!("{}", message);
-            };
+            log::info!(
+                "processing : {:<20}filter: {}, target: {}",
+                rule.name,
+                rule.filter,
+                rule.target
+            );
+            let message =
+                match search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove) {
+                    Ok(success) => format!("{}", success.unwrap()),
+                    Err(failed) => format!("FAILED: {:?}", failed),
+                };
+            log::info!("{}", message);
         }
     }
     // be nice to the server and log out
