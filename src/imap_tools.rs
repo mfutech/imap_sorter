@@ -108,15 +108,14 @@ pub fn search_and_move(
         );
     }
 
-    // skip move is rule disabled or running in simulation
-    if rule.enable && ! nomove{
+    // do the actual move or not according to flags and set return a message
+    let message = if rule.enable && ! nomove{
+        // let's move them
         imap_session.mv(search, rule.target)?;
-    }
-
-    // return a message as result according to what was done or not
-    let message = if rule.enable || nomove {
+        // and tell them how much we worked
         format!("processed {} messages", search_set.len())
     } else {
+        // skip move as rule is disabled or running in simulation
         format!(
             "rule disabled, did not process {} messages",
             search_set.len()
