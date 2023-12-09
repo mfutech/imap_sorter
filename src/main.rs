@@ -27,6 +27,8 @@ struct Args {
     rules: Option<String>,
     #[clap(short, long)]
     nomove: bool,
+    #[clap(short, long)]
+    silent: bool,
 }
 
 fn main() {
@@ -44,7 +46,9 @@ fn main() {
         None => config.rules_conf_path,
     };
 
-    println!("rules path: {}", rules_path);
+    if !args.silent {
+        println!("rules path: {}", rules_path);
+    };
 
     let folders_rules = match rules::RulesSet::load(rules_path.as_str()) {
         Ok(rules_set) => rules_set.folders,
@@ -96,19 +100,26 @@ fn main() {
     // now for each rules we find message and moved them as necessary
     for folder in folders_rules {
         let folder_name = folder.folder;
-        println!(
-            "-------------------- Processing for {} ----------",
-            folder_name
-        );
-        for rule in folder.rules {
+        if !args.silent {
             println!(
-                "processing : {:<20}filter: {}, target: {}",
-                rule.name, rule.filter, rule.target
+                "-------------------- Processing for {} ----------",
+                folder_name
             );
-            match search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove) {
-                Ok(success) => println!("{}", success.unwrap()),
-                Err(failed) => println!("FAILED: {:?}", failed),
-            }
+        };
+        for rule in folder.rules {
+            if !args.silent {
+                println!(
+                    "processing : {:<20}filter: {}, target: {}",
+                    rule.name, rule.filter, rule.target
+                );
+            };
+            let message = match search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove, ! args.silent) {
+                Ok(success) => format!("{}", success.unwrap()),
+                Err(failed) => format!("FAILED: {:?}", failed),
+            };
+            if !args.silent {
+                println!("{}", message);
+            };
         }
     }
     // be nice to the server and log out

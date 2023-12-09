@@ -1,4 +1,3 @@
-
 use crate::rules;
 use imap_proto::types::Address; // be carefull need the same crate as the one used by imap
 
@@ -40,6 +39,7 @@ pub fn search_and_move(
     rule: rules::Rule,
     folder: String,
     nomove: bool,
+    verbose: bool,
 ) -> imap::error::Result<Option<String>> {
     // we want to fetch the first email in the INBOX mailbox
     imap_session.select(folder)?;
@@ -51,7 +51,7 @@ pub fn search_and_move(
         return Ok(Some("nothing to move".to_string()));
     }
 
-    // collect found message to create a reference string for fetch 
+    // collect found message to create a reference string for fetch
     let search_vec: Vec<u32> = search_set.clone().into_iter().collect();
     let search: String = search_vec
         .iter()
@@ -62,22 +62,23 @@ pub fn search_and_move(
     let messages = imap_session.fetch(search.clone(), "ALL")?;
 
     // print header of found mails
-    println!(
-        "{date:<22} {subject:<40} {from:<30} {to:<30}",
-        date = "date",
-        subject = "subject",
-        from = "from",
-        to = "to"
-    );
+    if verbose {
+        println!(
+            "{date:<22} {subject:<40} {from:<30} {to:<30}",
+            date = "date",
+            subject = "subject",
+            from = "from",
+            to = "to"
+        );
+    };
 
     for message in &messages {
         let envelope = message.envelope().expect("message missing envelope");
 
-        let date = 
-            match envelope.date{
-                Some(date) => std::str::from_utf8(date).expect("Enveloppe date not UTF8"),
-                None => "NODATE"
-            };
+        let date = match envelope.date {
+            Some(date) => std::str::from_utf8(date).expect("Enveloppe date not UTF8"),
+            None => "NODATE",
+        };
 
         // subject more likely to not me utf8
         let subject =
@@ -96,20 +97,19 @@ pub fn search_and_move(
             _ => "TO_UNKN".to_string(),
         };
 
-        println!(
-            "{}",
-            format!(
+        if verbose {
+            println!(
                 "{date:<22} {subject:<40} {from:<30} {to:<30}",
                 date = date.chars().take(22).collect::<String>(),
                 subject = subject.chars().take(40).collect::<String>(),
                 from = from_addresses.chars().take(30).collect::<String>(),
                 to = to_addresses.chars().take(30).collect::<String>()
             )
-        );
+        };
     }
 
     // do the actual move or not according to flags and set return a message
-    let message = if rule.enable && ! nomove{
+    let message = if rule.enable && !nomove {
         // let's move them
         imap_session.mv(search, rule.target)?;
         // and tell them how much we worked
