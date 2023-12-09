@@ -10,8 +10,8 @@ It can be run on a regular basis an sort your inbox (at the moment only sort ema
 
 ## How to
 
-1. compile it `cargo run`
-2. create a config.ini file, with server, username, password
+1. run it once `cargo run`  
+2. edit a config.ini file, with server, username, password
 
    ```{json}
    imap_server = 'localhost'
@@ -19,6 +19,8 @@ It can be run on a regular basis an sort your inbox (at the moment only sort ema
    imap_username = 'user'
    imap_password = ''
    ```
+
+  if you want to secure your password using secure store, please see further down
 
 4. create a rules.yaml file with all your rules
 
@@ -62,3 +64,18 @@ on windows need openssl.
       or $env:VCPKGRS_DYNAMIC=1 (in powershell)
 
 ```
+
+## Using secure store
+
+You need to use ssclient to create and update seurestore, here is how
+
+```{shell}
+cargo install ssclient
+## you will need to enter a password twice, choose a long password, you will need it twice for create and once more to create the secrets.key file
+ssclient create config.json
+ssclient --export-key secrets.key -s .\config.json add imap_username 
+ssclient -k .\secrets.key -s .\config.json set imap_password
+ssclient -k .\secrets.key -s .\config.json set imap_hostname
+```
+
+do not forget to remove those three values from config.ini file

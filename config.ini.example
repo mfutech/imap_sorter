@@ -2,3 +2,6 @@ imap_server = 'localhost'
 imap_port = 993
 imap_username = 'user'
 imap_password = ''
+rules_conf_path = 'rules.yaml'
+secure_store_path = 'config.json'
+key_path = 'secrets.key'
