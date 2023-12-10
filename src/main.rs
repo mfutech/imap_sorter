@@ -138,8 +138,8 @@ fn main() {
 
         for rule in folder.rules {
             if !rule.match_tag(&args.tag) {
-                log::info!(
-                    "skipping : {:<20} filter: {}, target: {}",
+                log::debug!(
+                    "skipping   : {:<20} filter: {}, target: {}",
                     rule.name,
                     rule.filter,
                     rule.target
