@@ -10,6 +10,9 @@ folders:
         filter: FROM jane@doe.com
         target: Does/Jane_Mail
         enable: true
+        tags: 
+        - foo
+
   - folder: FOOBAR
     rules:
       - name: rule 1
@@ -21,3 +24,6 @@ folders:
         filter: FROM jane@doe.com
         target: Does/Jane_Mail
         enable: true
+        tags:
+          - foo
+          - bar

@@ -10,6 +10,25 @@ pub struct Rule {
     pub filter: String,
     pub target: String,
     pub enable: bool,
+    pub tags: Option<Vec<String>>,
+}
+
+impl Rule {
+    pub fn match_tag (&self,  tag : &Option<String>) -> bool{
+
+        let tag = match tag {
+            Some(tag) => tag.clone(),
+            None => return true, // if no tag requested, then it matches
+        };
+
+        // from here we know we need to match a tag
+        let rule_tags = match &self.tags {
+            Some(tags) => tags,
+            _ => return false, // if rules has no tags, then cannot match the request tag
+        };
+        rule_tags.contains(&tag)
+    }
+    
 }
 
 #[derive(Debug, Deserialize, Serialize)]

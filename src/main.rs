@@ -34,6 +34,8 @@ struct Args {
     silent: bool,
     #[clap(short, long)]
     debug: bool,
+    #[clap(short, long)]
+    tag: Option<String>,
 }
 
 fn setup_logging(args: &Args) {
@@ -133,9 +135,20 @@ fn main() {
             "-------------------- Processing for {} ----------",
             folder_name
         );
+
         for rule in folder.rules {
+            if !rule.match_tag(&args.tag) {
+                log::info!(
+                    "skipping : {:<20} filter: {}, target: {}",
+                    rule.name,
+                    rule.filter,
+                    rule.target
+                );
+                continue;
+            };
+
             log::info!(
-                "processing : {:<20}filter: {}, target: {}",
+                "processing : {:<20} filter: {}, target: {}",
                 rule.name,
                 rule.filter,
                 rule.target
