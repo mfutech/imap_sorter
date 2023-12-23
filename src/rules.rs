@@ -28,6 +28,12 @@ impl Rule {
         };
         rule_tags.contains(&tag)
     }
+    pub fn tags_string (&self) -> String {
+        match &self.tags {
+            Some(tags) => tags.join(", "),
+            _ => String::from(""),
+        }
+    }
     
 }
 

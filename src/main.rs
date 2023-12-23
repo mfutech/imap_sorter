@@ -36,6 +36,8 @@ struct Args {
     debug: bool,
     #[clap(short, long)]
     tag: Option<String>,
+    #[clap(long)]
+    listtag: bool,
 }
 
 fn setup_logging(args: &Args) {
@@ -84,6 +86,22 @@ fn main() {
     let folders_rules = match rules::RulesSet::load(rules_path.as_str()) {
         Ok(rules_set) => rules_set.folders,
         Err(error) => panic!("cannot read rules : {}", error),
+    };
+
+    // if only list rules, then only liste rules and exit
+    if args.listtag {
+        for folder in folders_rules {
+            let folder_name = folder.folder;
+            println!("Folder: {}", folder_name);
+
+            for rule in folder.rules {
+                println!(
+                    "{} - {} - {} - {}",
+                    rule.name, rule.filter, rule.target, rule.tags_string()
+                );
+            }
+        }
+        return
     };
 
     // connect to secret manager
