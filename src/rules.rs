@@ -14,8 +14,7 @@ pub struct Rule {
 }
 
 impl Rule {
-    pub fn match_tag (&self,  tag : &Option<String>) -> bool{
-
+    pub fn match_tag(&self, tag: &Option<String>) -> bool {
         let tag = match tag {
             Some(tag) => tag.clone(),
             None => return true, // if no tag requested, then it matches
@@ -28,13 +27,12 @@ impl Rule {
         };
         rule_tags.contains(&tag)
     }
-    pub fn tags_string (&self) -> String {
+    pub fn tags_string(&self) -> String {
         match &self.tags {
             Some(tags) => tags.join(", "),
             _ => String::from(""),
         }
     }
-    
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -43,6 +41,19 @@ pub struct FolderRule {
     pub rules: Vec<Rule>,
 }
 
+impl FolderRule {
+    pub fn list_tags(&self) -> Vec<String> {
+        let mut all_tags: Vec<String>= Vec::new();
+        for rule in &self.rules {
+            if let Some(tag) = &rule.tags {
+                all_tags.extend_from_slice(&tag)
+            }
+        }
+        all_tags.sort();
+        all_tags.dedup();
+        all_tags
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RulesSet {
@@ -57,5 +68,14 @@ impl RulesSet {
         let rules_set: RulesSet = serde_yaml::from_reader(reader)
             .with_context(|| format!("Failed to parse YAML file: {}", file_name))?;
         Ok(rules_set)
+    }
+    pub fn list_tags(&self) -> Vec<String> {
+        let mut all_tags: Vec<String> = Vec::new();
+        for folder in &self.folders {
+            all_tags.extend_from_slice(&folder.list_tags())
+        }
+        all_tags.sort();
+        all_tags.dedup();
+        all_tags
     }
 }

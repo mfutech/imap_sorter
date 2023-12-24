@@ -37,7 +37,9 @@ struct Args {
     #[clap(short, long)]
     tag: Option<String>,
     #[clap(long)]
-    listtag: bool,
+    listrules: bool,
+    #[clap(long)]
+    listtags: bool,
 }
 
 fn setup_logging(args: &Args) {
@@ -83,25 +85,36 @@ fn main() {
 
     log::debug!("rules path: {}", rules_path);
 
-    let folders_rules = match rules::RulesSet::load(rules_path.as_str()) {
-        Ok(rules_set) => rules_set.folders,
+    let rules_set = match rules::RulesSet::load(rules_path.as_str()) {
+        Ok(rules_set) => rules_set,
         Err(error) => panic!("cannot read rules : {}", error),
     };
 
     // if only list rules, then only liste rules and exit
-    if args.listtag {
-        for folder in folders_rules {
+    if args.listrules {
+        for folder in rules_set.folders {
             let folder_name = folder.folder;
             println!("Folder: {}", folder_name);
 
             for rule in folder.rules {
                 println!(
                     "{} - {} - {} - {}",
-                    rule.name, rule.filter, rule.target, rule.tags_string()
+                    rule.name,
+                    rule.filter,
+                    rule.target,
+                    rule.tags_string()
                 );
             }
         }
-        return
+        return;
+    };
+
+    // if only list rules, then only liste rules and exit
+    if args.listtags {
+        for tags in rules_set.list_tags() {
+            println!("{}", tags);
+        }
+        return;
     };
 
     // connect to secret manager
@@ -147,7 +160,7 @@ fn main() {
         .expect("cannot connect to IMAP server");
 
     // now for each rules we find message and moved them as necessary
-    for folder in folders_rules {
+    for folder in rules_set.folders {
         let folder_name = folder.folder;
         log::info!(
             "-------------------- Processing for {} ----------",
