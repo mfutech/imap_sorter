@@ -26,6 +26,8 @@ impl Rule {
             Some(tags) => tags,
             _ => return false, // if rules has no tags, then cannot match the request tag
         };
+
+        // check if tag if in the tag list
         rule_tags.contains(&tag)
     }
     pub fn tags_string(&self) -> String {

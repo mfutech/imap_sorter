@@ -24,21 +24,21 @@ use clap;
     about = "Process email in IMAP Inbox according to rules"
 )]
 struct Args {
-    #[clap(short, long, default_value = "config.ini")]
+    #[clap(short, long, default_value = "config.ini", help = "where to find config file")]
     config: String,
-    #[clap(short, long)]
+    #[clap(short, long, help="where to file rule YAML file")]
     rules: Option<String>,
-    #[clap(short, long)]
+    #[clap(short, long, help="do not move message (aka simlation mode")]
     nomove: bool,
-    #[clap(short, long)]
+    #[clap(short, long, help="no output")]
     silent: bool,
-    #[clap(short, long)]
+    #[clap(short, long, help="much more details about what is going on")]
     debug: bool,
-    #[clap(short, long)]
+    #[clap(short, long, help="filter by this tag, only rule matching this tag will be executed")]
     tag: Option<String>,
-    #[clap(long)]
+    #[clap(long, help="list all rules")]
     listrules: bool,
-    #[clap(long)]
+    #[clap(long, help="list all tags")]
     listtags: bool,
 }
 
@@ -96,11 +96,9 @@ fn main() {
         return;
     };
 
-    // if only list rules, then only liste rules and exit
+    // if only list tags, then only liste tags and exit
     if args.listtags {
-        for tags in rules_set.list_tags() {
-            println!("{}", tags);
-        }
+            println!("tags : {}", rules_set.list_tags().join(", "));
         return;
     };
 
@@ -156,21 +154,11 @@ fn main() {
 
         for rule in folder.rules {
             if !rule.match_tag(&args.tag) {
-                log::debug!(
-                    "skipping   : {:<20} filter: {}, target: {}",
-                    rule.name,
-                    rule.filter,
-                    rule.target
-                );
+                log::debug!("skipping   : {}", rule.as_string());
                 continue;
             };
 
-            log::info!(
-                "processing : {:<20} filter: {}, target: {}",
-                rule.name,
-                rule.filter,
-                rule.target
-            );
+            log::info!("processing : {}", rule.as_string());
             let message =
                 match search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove) {
                     Ok(success) => format!("{}", success.unwrap()),
