@@ -92,20 +92,7 @@ fn main() {
 
     // if only list rules, then only liste rules and exit
     if args.listrules {
-        for folder in rules_set.folders {
-            let folder_name = folder.folder;
-            println!("Folder: {}", folder_name);
-
-            for rule in folder.rules {
-                println!(
-                    "{} - {} - {} - {}",
-                    rule.name,
-                    rule.filter,
-                    rule.target,
-                    rule.tags_string()
-                );
-            }
-        }
+        rules_set.print();
         return;
     };
 

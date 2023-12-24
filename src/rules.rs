@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_yaml;
+use std::fmt::format;
 use std::fs::File;
 use std::io::BufReader;
 
@@ -33,6 +34,17 @@ impl Rule {
             _ => String::from(""),
         }
     }
+
+    pub fn as_string(&self) -> String {
+        format!(
+            "{:<20} filter: {}, target: {}",
+            &self.name, &self.filter, &self.target,
+        )
+    }
+
+    pub fn print(&self) {
+        println!("{}", &self.as_string())
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -43,7 +55,7 @@ pub struct FolderRule {
 
 impl FolderRule {
     pub fn list_tags(&self) -> Vec<String> {
-        let mut all_tags: Vec<String>= Vec::new();
+        let mut all_tags: Vec<String> = Vec::new();
         for rule in &self.rules {
             if let Some(tag) = &rule.tags {
                 all_tags.extend_from_slice(&tag)
@@ -52,6 +64,13 @@ impl FolderRule {
         all_tags.sort();
         all_tags.dedup();
         all_tags
+    }
+
+    pub fn print(&self) {
+        println!("Folder: {}", &self.folder);
+        for rule in &self.rules {
+            rule.print();
+        }
     }
 }
 
@@ -77,5 +96,11 @@ impl RulesSet {
         all_tags.sort();
         all_tags.dedup();
         all_tags
+    }
+
+    pub fn print(&self) {
+        for folder in &self.folders {
+            folder.print();
+        }
     }
 }
