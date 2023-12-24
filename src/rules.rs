@@ -1,7 +1,6 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_yaml;
-use std::fmt::format;
 use std::fs::File;
 use std::io::BufReader;
 
@@ -39,8 +38,8 @@ impl Rule {
 
     pub fn as_string(&self) -> String {
         format!(
-            "{:<20} filter: {}, target: {}",
-            &self.name, &self.filter, &self.target,
+            "{:<25} filter: {:<60} target: {:<15} tags: {:<20}",
+            &self.name, &self.filter, &self.target, &self.tags_string()
         )
     }
 
