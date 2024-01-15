@@ -65,6 +65,14 @@ on windows need openssl.
 
 ```
 
+also need do set flag for static compiling ssl in final binaries:
+
+```{shell}
+set RUSTFLAGS=-Ctarget-feature=+crt-static
+or
+$env:RUSTFLAGS="-Ctarget-feature=+crt-static"
+```
+
 ## Using secure store
 
 You need to use ssclient to create and update seurestore, here is how
