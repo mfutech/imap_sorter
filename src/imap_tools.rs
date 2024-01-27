@@ -39,16 +39,19 @@ pub fn search_and_move(
     rule: rules::Rule,
     folder: String,
     nomove: bool,
+    force: bool,
 ) -> imap::error::Result<Option<String>> {
     // we want to fetch the first email in the INBOX mailbox
     imap_session.select(folder)?;
 
     // fetch message number 1 in this mailbox, along with its RFC822 field.
     // RFC 822 dictates the format of the body of e-mails
-    let search_set = imap_session.search(rule.filter)?;
+    let search_set = imap_session.search(rule.filter.clone())?;
     if search_set.len() == 0 {
         return Ok(Some("nothing to move".to_string()));
     }
+
+    log::info!("processing : {}", rule.as_string());
 
     // collect found message to create a reference string for fetch
     let search_vec: Vec<u32> = search_set.clone().into_iter().collect();
@@ -104,7 +107,7 @@ pub fn search_and_move(
     }
 
     // do the actual move or not according to flags and set return a message
-    let message = if rule.enable && !nomove {
+    let message = if ( rule.enable && !nomove ) || force {
         // let's move them
         imap_session.mv(search, rule.target)?;
         // and tell them how much we worked
@@ -116,5 +119,8 @@ pub fn search_and_move(
             search_set.len()
         )
     };
+
+    log::info!("{}", message);
+
     Ok(Some(message))
 }

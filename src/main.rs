@@ -28,8 +28,10 @@ struct Args {
     config: String,
     #[clap(short, long, help="where to file rule YAML file")]
     rules: Option<String>,
-    #[clap(short, long, help="do not move message (aka simlation mode")]
+    #[clap(short, long, help="do not move message (aka simlation mode)")]
     nomove: bool,
+    #[clap(short, long, help="force, execute all rules, even disabled one")]
+    force: bool,
     #[clap(short, long, help="no output")]
     silent: bool,
     #[clap(short, long, help="much more details about what is going on")]
@@ -158,14 +160,17 @@ fn main() {
                 continue;
             };
 
-            log::info!("processing : {}", rule.as_string());
+            /*log::info!("processing : {}", rule.as_string());
             let message =
-                match search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove) {
+                match search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove, args.force) {
                     Ok(success) => format!("{}", success.unwrap()),
                     Err(failed) => format!("FAILED: {:?}", failed),
                 };
             log::info!("{}", message);
+            */
+            search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove, args.force).unwrap();
         }
+        log::info!("done");
     }
     // be nice to the server and log out
     imap_session.logout().expect("failed to logout");
