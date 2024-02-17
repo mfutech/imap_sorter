@@ -34,6 +34,8 @@ struct Args {
     force: bool,
     #[clap(short, long, help="no output")]
     silent: bool,
+    #[clap(short, long, help="more details about what is going on")]
+    verbose: bool,
     #[clap(short, long, help="much more details about what is going on")]
     debug: bool,
     #[clap(short, long, help="filter by this tag, only rule matching this tag will be executed")]
@@ -49,16 +51,21 @@ fn setup_logging(args: &Args) {
     // env_logger::init();
     let logfilter = if args.silent {
         log::LevelFilter::Warn
-    } else if args.debug {
+    }
+    else if args.verbose { 
+        // for verbose level we actully use debug logging
         log::LevelFilter::Debug
+    } else if args.debug {
+        // debug purpose, active the trace logging level
+        log::LevelFilter::Trace
     } else {
         log::LevelFilter::Info
     };
     env_logger::builder()
         .filter_level(logfilter)
         .format(|buf, record| {
-            // we make the "info" logging be straight output
-            if record.level() == log::Level::Info {
+            // we make the "info" or "debug" logging be straight output
+            if record.level() == log::Level::Info || record.level() == log::Level::Debug{
                 writeln!(buf, "{}", record.args())
             } else {
                 // otherwise print with log level information
@@ -156,7 +163,7 @@ fn main() {
 
         for rule in folder.rules {
             if !rule.match_tag(&args.tag) {
-                log::debug!("skipping   : {}", rule.as_string());
+                log::debug!("skipping   :\n{}", rule.as_string());
                 continue;
             };
 

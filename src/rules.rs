@@ -38,7 +38,8 @@ impl Rule {
 
     pub fn as_string(&self) -> String {
         format!(
-            "{:<25} filter: {:<60} target: {:<15} tags: {:<20}",
+            // "{:<25} filter: {:<60} target: {:<15} tags: {:<20}",
+            "* rule:\t{}\n\tfilter: {}\n\ttarget: {}\n\ttags: {}",
             &self.name, &self.filter, &self.target, &self.tags_string()
         )
     }

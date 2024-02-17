@@ -1,5 +1,5 @@
 use crate::rules;
-use imap_proto::types::Address; // be carefull need the same crate as the one used by imap
+use imap_proto::types::Address;
 
 fn get_addresses(addresses_vec: &Vec<Address<'_>>) -> Result<String, String> {
     // scan all Vec<Addresses<>> and make a string
@@ -51,7 +51,8 @@ pub fn search_and_move(
         return Ok(Some("nothing to move".to_string()));
     }
 
-    log::info!("processing : {}", rule.as_string());
+    log::info!("processing :{}", rule.name);
+    log::debug!("{}", rule.as_string());
 
     // collect found message to create a reference string for fetch
     let search_vec: Vec<u32> = search_set.clone().into_iter().collect();
@@ -63,51 +64,55 @@ pub fn search_and_move(
 
     let messages = imap_session.fetch(search.clone(), "ALL")?;
 
-    // print header of found mails
-    log::info!(
-        "{date:<22} {subject:<40} {from:<30} {to:<30}",
-        date = "date",
-        subject = "subject",
-        from = "from",
-        to = "to"
-    );
+    if log::log_enabled!(log::Level::Debug) {
+        // we are in debug mode, let's get all details of messages we are going to move properly formated
 
-    for message in &messages {
-        let envelope = message.envelope().expect("message missing envelope");
+        // print header of found mails
+        log::debug!(
+            "{date:<22} {subject:<40} {from:<30} {to:<30}",
+            date = "date",
+            subject = "subject",
+            from = "from",
+            to = "to"
+        );
 
-        let date = match envelope.date {
-            Some(date) => std::str::from_utf8(date).expect("Enveloppe date not UTF8"),
-            None => "NODATE",
-        };
+        // iterate on all message an print them
+        for message in &messages {
+            let envelope = message.envelope().expect("message missing envelope");
 
-        // subject more likely to not me utf8
-        let subject =
-            match std::str::from_utf8(envelope.subject.expect("envelopem missing subject")) {
-                Ok(subject) => subject.to_string(),
-                Err(error) => format!("Enveloppe subject not UTF8 : {}", error),
+            let date = match envelope.date {
+                Some(date) => std::str::from_utf8(date).expect("Enveloppe date not UTF8"),
+                None => "NODATE",
             };
 
-        let from_addresses = match envelope.from.as_ref() {
-            Some(froms) => get_addresses(froms).unwrap(),
-            _ => "FROM_UKN".to_string(),
-        };
+            // subject more likely to not me utf8
+            let subject =
+                match std::str::from_utf8(envelope.subject.expect("envelopem missing subject")) {
+                    Ok(subject) => subject.to_string(),
+                    Err(error) => format!("Enveloppe subject not UTF8 : {}", error),
+                };
 
-        let to_addresses = match envelope.to.as_ref() {
-            Some(tos) => get_addresses(tos).unwrap(),
-            _ => "TO_UNKN".to_string(),
-        };
+            let from_addresses = match envelope.from.as_ref() {
+                Some(froms) => get_addresses(froms).unwrap(),
+                _ => "FROM_UKN".to_string(),
+            };
 
-        log::info!(
-            "{date:<22} {subject:<40} {from:<30} {to:<30}",
-            date = date.chars().take(22).collect::<String>(),
-            subject = subject.chars().take(40).collect::<String>(),
-            from = from_addresses.chars().take(30).collect::<String>(),
-            to = to_addresses.chars().take(30).collect::<String>()
-        );
-    }
+            let to_addresses = match envelope.to.as_ref() {
+                Some(tos) => get_addresses(tos).unwrap(),
+                _ => "TO_UNKN".to_string(),
+            };
 
+            log::debug!(
+                "{date:<22} {subject:<40} {from:<30} {to:<30}",
+                date = date.chars().take(22).collect::<String>(),
+                subject = subject.chars().take(40).collect::<String>(),
+                from = from_addresses.chars().take(30).collect::<String>(),
+                to = to_addresses.chars().take(30).collect::<String>()
+            );
+        }
+    };
     // do the actual move or not according to flags and set return a message
-    let message = if ( rule.enable && !nomove ) || force {
+    let message = if (rule.enable && !nomove) || force {
         // let's move them
         imap_session.mv(search, rule.target)?;
         // and tell them how much we worked
