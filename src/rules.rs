@@ -47,6 +47,15 @@ impl Rule {
     pub fn print(&self) {
         println!("{}", &self.as_string())
     }
+
+    pub fn name_and_tag(&self) -> String {
+        let tags = match &self.tags {
+            Some(tags) => format!(" [{}]", tags.join(", ")),
+            _ => "".to_string()
+        };
+        format!("{}{}", &self.name, tags)
+
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]

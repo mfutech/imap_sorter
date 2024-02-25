@@ -51,7 +51,7 @@ pub fn search_and_move(
         return Ok(Some("nothing to move".to_string()));
     }
 
-    log::info!("processing :{}", rule.name);
+    log::info!("processing :{}", rule.name_and_tag());
     log::debug!("{}", rule.as_string());
 
     // collect found message to create a reference string for fetch
