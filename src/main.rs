@@ -134,11 +134,11 @@ fn main() {
         Ok(password) => password,
         Err(_) => config.imap_password.clone(),
     };
-    let tls = native_tls::TlsConnector::builder().build().unwrap();
+    let _tls = native_tls::TlsConnector::builder().build().unwrap();
 
     // we pass in the domain twice to check that the server's TLS
     // certificate is valid for the domain we're connecting to.
-    let client = match imap::connect((domain, port), domain, &tls) {
+    let client = match imap::ClientBuilder::new(domain, port).connect() {
         Ok(client) => client,
         Err(error) => {
             log::error!("Error with IMAP server : {}", error);

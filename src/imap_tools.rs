@@ -1,7 +1,9 @@
 use crate::rules;
-use imap_proto::types::Address;
+use imap::ImapConnection;
+extern crate imap;
 
-fn get_addresses(addresses_vec: &Vec<Address<'_>>) -> Result<String, String> {
+/*
+fn get_addresses(addresses_vec: &Vec<imap_types::envelope::Address<'_>>) -> Result<String, String> {
     // scan all Vec<Addresses<>> and make a string
     // of all addreeses in one string coma separated
     Ok(addresses_vec
@@ -13,19 +15,9 @@ fn get_addresses(addresses_vec: &Vec<Address<'_>>) -> Result<String, String> {
                 // target format
                 "{}@{}",
                 // get mailbox
-                std::str::from_utf8(match addr.mailbox.as_ref() {
-                    // if no host, replace by uknown
-                    Some(mailbox) => mailbox,
-                    _ => "unknown".as_bytes(),
-                })
-                .unwrap(),
+                String::from_utf8_lossy(addr.mailbox.as_ref()),
                 // get host
-                std::str::from_utf8(match addr.host.as_ref() {
-                    // if no host, replace by uknown
-                    Some(host) => host,
-                    _ => "unknown".as_bytes(),
-                })
-                .unwrap(),
+                String::from_utf8_lossy(addr.host.as_ref()),
             )
         })
         // collect resutl in a Vec<String>
@@ -33,9 +25,9 @@ fn get_addresses(addresses_vec: &Vec<Address<'_>>) -> Result<String, String> {
         // join them in a string, separated by ,
         .join(", "))
 }
-
+*/
 pub fn search_and_move(
-    imap_session: &mut imap::Session<native_tls::TlsStream<std::net::TcpStream>>,
+    imap_session: &mut imap::Session<Box<dyn ImapConnection>>,
     rule: rules::Rule,
     folder: String,
     nomove: bool,
@@ -62,9 +54,9 @@ pub fn search_and_move(
         .collect::<Vec<String>>()
         .join(",");
 
-    let messages = imap_session.fetch(search.clone(), "ALL")?;
+    let _messages = imap_session.fetch(search.clone(), "ALL")?; 
 
-    if log::log_enabled!(log::Level::Debug) {
+/*     if log::log_enabled!(log::Level::Debug) {
         // we are in debug mode, let's get all details of messages we are going to move properly formated
 
         // print header of found mails
@@ -77,20 +69,13 @@ pub fn search_and_move(
         );
 
         // iterate on all message an print them
-        for message in &messages {
+        for message in messages.iter() {
             let envelope = message.envelope().expect("message missing envelope");
 
-            let date = match envelope.date {
-                Some(date) => std::str::from_utf8(date).expect("Enveloppe date not UTF8"),
-                None => "NODATE",
-            };
+            let date = String::from_utf8_lossy(&envelope.date);
 
             // subject more likely to not me utf8
-            let subject =
-                match std::str::from_utf8(envelope.subject.expect("envelopem missing subject")) {
-                    Ok(subject) => subject.to_string(),
-                    Err(error) => format!("Enveloppe subject not UTF8 : {}", error),
-                };
+            let subject = String::from_utf8_lossy(&envelope.subject);
 
             let from_addresses = match envelope.from.as_ref() {
                 Some(froms) => get_addresses(froms).unwrap(),
@@ -110,7 +95,7 @@ pub fn search_and_move(
                 to = to_addresses.chars().take(30).collect::<String>()
             );
         }
-    };
+    }; */
     // do the actual move or not according to flags and set return a message
     let message = if (rule.enable && !nomove) || force {
         // let's move them

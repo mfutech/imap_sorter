@@ -10,12 +10,16 @@ anyhow = { version = "1.0.75", features = ["std"] }
 clap = { version = "4.4.8", features = ["derive"] }
 confy = "0.5.1"
 env_logger = "0.10.0"
-imap = "2.4.1"
-imap-proto = "0.10.2"
 log = "0.4.20"
 native-tls = "0.2.11"
 securestore = "0.100.0"
 serde = { version = "1.0.190", features = ["derive"] }
 serde_yaml = "0.9.27"
 simple_logger = { version = "4.3.0", default-features = false}
+rustls-connector = { version = "0.18.0", optional = true }
+imap-types = "1.0.0"
 
+[dependencies.imap]
+#version = "2.4.1"
+version = "3.0.0-alpha.12"
+default-features = false
