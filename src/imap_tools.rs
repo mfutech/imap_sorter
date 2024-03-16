@@ -1,31 +1,50 @@
 use crate::rules;
 use imap::ImapConnection;
-extern crate imap;
+use imap_proto::types::Address;
 
-/*
-fn get_addresses(addresses_vec: &Vec<imap_types::envelope::Address<'_>>) -> Result<String, String> {
-    // scan all Vec<Addresses<>> and make a string
-    // of all addreeses in one string coma separated
-    Ok(addresses_vec
-        // goes though all addresses
-        .iter()
-        .map(|addr| {
-            // extract mailbox and host and concatenate with a @
-            format!(
-                // target format
-                "{}@{}",
-                // get mailbox
-                String::from_utf8_lossy(addr.mailbox.as_ref()),
-                // get host
-                String::from_utf8_lossy(addr.host.as_ref()),
-            )
-        })
-        // collect resutl in a Vec<String>
-        .collect::<Vec<String>>()
-        // join them in a string, separated by ,
-        .join(", "))
+#[derive(Default, Debug)]
+struct Enveloppe {
+    date: String,
+    subject: String,
+    from: String,
+    sender: String,
+    mailbox: String,
+    host: String,
+    reply_to: String,
+    cc: String,
+    bcc: String,
+    in_reply_to: String,
+    message_id: String,
 }
-*/
+
+fn get_addresses(addresses_vec_opt: Option<&Vec<Address>>) -> String {
+    match addresses_vec_opt {
+        // scan all Vec<Addresses<>> and make a string
+        // of all addreeses in one string coma separated
+        Some(addresses_vec) => {
+            addresses_vec
+                // goes though all addresses
+                .iter()
+                .map(|addr| {
+                    // extract mailbox and host and concatenate with a @
+                    format!(
+                        // target format
+                        "{:?}@{:?}",
+                        // get mailbox
+                        addr.mailbox,
+                        // get host
+                        addr.host,
+                    )
+                })
+                // collect resutl in a Vec<String>
+                .collect::<Vec<String>>()
+                // join them in a string, separated by ,
+                .join(", ")
+        }
+        _ => "UNKNOWN".to_string(),
+    }
+}
+
 pub fn search_and_move(
     imap_session: &mut imap::Session<Box<dyn ImapConnection>>,
     rule: rules::Rule,
@@ -40,6 +59,7 @@ pub fn search_and_move(
     // RFC 822 dictates the format of the body of e-mails
     let search_set = imap_session.search(rule.filter.clone())?;
     if search_set.len() == 0 {
+        log::info!("nothing to move: {}", rule.name_and_tag());
         return Ok(Some("nothing to move".to_string()));
     }
 
@@ -54,9 +74,8 @@ pub fn search_and_move(
         .collect::<Vec<String>>()
         .join(",");
 
-    let _messages = imap_session.fetch(search.clone(), "ALL")?; 
-
-/*     if log::log_enabled!(log::Level::Debug) {
+    if log::log_enabled!(log::Level::Debug) {
+        let messages = imap_session.fetch(search.clone(), "ALL")?;
         // we are in debug mode, let's get all details of messages we are going to move properly formated
 
         // print header of found mails
@@ -70,22 +89,17 @@ pub fn search_and_move(
 
         // iterate on all message an print them
         for message in messages.iter() {
-            let envelope = message.envelope().expect("message missing envelope");
+            let envelope = message
+                .envelope()
+                .expect("message missing envelope")
+                .to_owned();
 
-            let date = String::from_utf8_lossy(&envelope.date);
+            let date = String::from_utf8_lossy(envelope.date.as_ref().unwrap().as_ref());
 
             // subject more likely to not me utf8
-            let subject = String::from_utf8_lossy(&envelope.subject);
-
-            let from_addresses = match envelope.from.as_ref() {
-                Some(froms) => get_addresses(froms).unwrap(),
-                _ => "FROM_UKN".to_string(),
-            };
-
-            let to_addresses = match envelope.to.as_ref() {
-                Some(tos) => get_addresses(tos).unwrap(),
-                _ => "TO_UNKN".to_string(),
-            };
+            let subject = String::from_utf8_lossy(envelope.subject.as_ref().unwrap().as_ref());
+            let from_addresses = get_addresses( envelope.from.as_ref() );
+            let to_addresses = get_addresses(envelope.to.as_ref());
 
             log::debug!(
                 "{date:<22} {subject:<40} {from:<30} {to:<30}",
@@ -95,9 +109,9 @@ pub fn search_and_move(
                 to = to_addresses.chars().take(30).collect::<String>()
             );
         }
-    }; */
+    };
     // do the actual move or not according to flags and set return a message
-    let message = if (rule.enable && !nomove) || force {
+    let result = if (rule.enable && !nomove) || force {
         // let's move them
         imap_session.mv(search, rule.target)?;
         // and tell them how much we worked
@@ -110,7 +124,7 @@ pub fn search_and_move(
         )
     };
 
-    log::info!("{}", message);
+    log::info!("{}", result);
 
-    Ok(Some(message))
+    Ok(Some(result))
 }

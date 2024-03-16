@@ -1,5 +1,4 @@
 extern crate imap;
-extern crate native_tls;
 extern crate securestore;
 use std::path::Path;
 
@@ -30,15 +29,23 @@ struct Args {
         help = "where to find config file"
     )]
     config: String,
+    #[clap(short, long, help = "much more details about what is going on")]
+    debug: bool,
 }
 
-
 fn main() {
-
-    println!("--- print all header of first message in inbox");
-
     // let's get the argument we are called with
     let args = Args::parse();
+    // setup logging according to log level (default is INFO)
+    // env_logger::init();
+    let logfilter = if args.debug {
+        log::LevelFilter::Trace
+    } else {
+        log::LevelFilter::Info
+    };
+    env_logger::builder().filter_level(logfilter).init();
+
+    println!("--- print all header of first message in inbox");
 
     let config: config::Configuration = match confy::load_path(args.config) {
         Ok(config) => config,
@@ -74,13 +81,12 @@ fn main() {
     // we pass in the domain twice to check that the server's TLS
     // certificate is valid for the domain we're connecting to.
 
-    let client = match imap::ClientBuilder::new(domain, port).connect(){
+    let client = match imap::ClientBuilder::new(domain, port).connect() {
         Ok(client) => client,
         Err(error) => {
             log::error!("Error with IMAP server : {}", error);
             return;
         }
-
     };
 
     // the client we have here is unauthenticated.
@@ -90,33 +96,30 @@ fn main() {
         .map_err(|e| e.0)
         .expect("cannot connect to IMAP server");
 
-       
     // just get one message from inbox and print all details message header
 
     // examine inbox (read only)
     imap_session.select("INBOX").unwrap();
 
-    let all_message_id : Vec<u32> = imap_session.search("ALL").unwrap().into_iter().collect();
+    let all_message_id: Vec<u32> = imap_session.search("UNSEEN").unwrap().into_iter().collect();
     let message_id = all_message_id[0].to_string();
     println!("message_id: {:?}", message_id);
 
-
-    let messages = imap_session.fetch(message_id, "(FLAGS INTERNALDATE RFC822.SIZE ENVELOPE BODY)");
+    let messages = imap_session.fetch(message_id, "(ENVELOPE RFC822 BODY[HEADER])");
     let messages = match messages {
         Ok(messages) => messages,
         Err(error) => {
             let err = match error {
                 imap::Error::Parse(parse_err) => match parse_err {
-                    imap::error::ParseError::Invalid(invalid) => std::str::from_utf8(&invalid).unwrap().to_string(),
+                    imap::error::ParseError::Invalid(invalid) => {
+                        std::str::from_utf8(&invalid).unwrap().to_string()
+                    }
                     _ => todo!(),
-
                 },
-                _ => format!("{:?}", error)
-
+                _ => format!("{:?}", error),
             };
             panic!("fetch return erronous result : {:?}", err);
         }
-
     };
     let message = if let Some(m) = messages.iter().next() {
         m
@@ -128,20 +131,23 @@ fn main() {
     println!("-- envelope returned : {:?}", envelope);
 
     let header = match message.header() {
-        Some(header) => std::str::from_utf8(header).expect("header was not valid utf-8").to_string(),
-        None => "".to_string()
+        Some(header) => std::str::from_utf8(header)
+            .expect("header was not valid utf-8")
+            .to_string(),
+        None => "".to_string(),
     };
     println!("header: {:?}", header);
-/*
-    let envelope = std::str::from_utf8(envelope)
-        .expect("header was not valid utf-8")
-        .to_string();
+    /*
+        let envelope = std::str::from_utf8(envelope)
+            .expect("header was not valid utf-8")
+            .to_string();
 
-    println!("Enveloppe:\n{}", envelope);
-*/
+        println!("Enveloppe:\n{}", envelope);
+    */
     let flags = message.flags();
     println!("flags: {:?}", flags);
 
+    println!("message : \n{}", String::from_utf8_lossy(message.body().expect("nobodyhome")));
 
     // be nice to the server and log out
     imap_session.logout().expect("failed to logout");
