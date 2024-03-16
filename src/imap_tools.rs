@@ -48,6 +48,7 @@ pub fn search_and_move(
     // RFC 822 dictates the format of the body of e-mails
     let search_set = imap_session.search(rule.filter.clone())?;
     if search_set.len() == 0 {
+        log::debug!("nothing to move :{}", rule.name_and_tag());
         return Ok(Some("nothing to move".to_string()));
     }
 
@@ -64,11 +65,11 @@ pub fn search_and_move(
 
     let messages = imap_session.fetch(search.clone(), "ALL")?;
 
-    if log::log_enabled!(log::Level::Debug) {
+    if log::log_enabled!(log::Level::Trace) {
         // we are in debug mode, let's get all details of messages we are going to move properly formated
 
         // print header of found mails
-        log::debug!(
+        log::trace!(
             "{date:<22} {subject:<40} {from:<30} {to:<30}",
             date = "date",
             subject = "subject",
@@ -102,7 +103,7 @@ pub fn search_and_move(
                 _ => "TO_UNKN".to_string(),
             };
 
-            log::debug!(
+            log::trace!(
                 "{date:<22} {subject:<40} {from:<30} {to:<30}",
                 date = date.chars().take(22).collect::<String>(),
                 subject = subject.chars().take(40).collect::<String>(),

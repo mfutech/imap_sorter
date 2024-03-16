@@ -167,14 +167,14 @@ fn main() {
                 continue;
             };
 
-            /*log::info!("processing : {}", rule.as_string());
-            let message =
-                match search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove, args.force) {
-                    Ok(success) => format!("{}", success.unwrap()),
-                    Err(failed) => format!("FAILED: {:?}", failed),
-                };
-            log::info!("{}", message);
-            */
+            // log::info!("processing : {}", rule.as_string());
+            // let message =
+            //     match search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove, args.force) {
+            //         Ok(success) => format!("{}", success.unwrap()),
+            //         Err(failed) => format!("FAILED: {:?}", failed),
+            //     };
+            // log::info!("{}", message);
+            
             search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove, args.force).unwrap();
         }
         log::info!("done");
