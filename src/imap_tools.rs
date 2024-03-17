@@ -1,3 +1,4 @@
+
 use crate::rules;
 use imap::ImapConnection;
 use imap_proto::types::Address;
@@ -17,6 +18,29 @@ struct Enveloppe {
     message_id: String,
 }
 
+fn format_address(address: &Address) -> String {
+    // extract mailbox and host and concatenate with a @
+    format!(
+        // target format
+        "{}{}@{}",
+        // get name
+        match address.name.as_ref() {
+            Some(buffer) => format!("<{}> ", String::from_utf8_lossy(buffer.as_ref())),
+            None => "".into(),
+        },
+        // get mailbox
+        match address.mailbox.as_ref() {
+            Some(buffer) => String::from_utf8_lossy(buffer.as_ref()),
+            None => "?".into(),
+        },
+        // get host
+        match address.host.as_ref() {
+            Some(buffer) => String::from_utf8_lossy(buffer.as_ref()),
+            None => "?".into(),
+        },
+    )
+}
+
 fn get_addresses(addresses_vec_opt: Option<&Vec<Address>>) -> String {
     match addresses_vec_opt {
         // scan all Vec<Addresses<>> and make a string
@@ -25,17 +49,8 @@ fn get_addresses(addresses_vec_opt: Option<&Vec<Address>>) -> String {
             addresses_vec
                 // goes though all addresses
                 .iter()
-                .map(|addr| {
-                    // extract mailbox and host and concatenate with a @
-                    format!(
-                        // target format
-                        "{:?}@{:?}",
-                        // get mailbox
-                        addr.mailbox,
-                        // get host
-                        addr.host,
-                    )
-                })
+                // properly format addreses
+                .map(|addr| format_address(addr))
                 // collect resutl in a Vec<String>
                 .collect::<Vec<String>>()
                 // join them in a string, separated by ,
@@ -98,7 +113,7 @@ pub fn search_and_move(
 
             // subject more likely to not me utf8
             let subject = String::from_utf8_lossy(envelope.subject.as_ref().unwrap().as_ref());
-            let from_addresses = get_addresses( envelope.from.as_ref() );
+            let from_addresses = get_addresses(envelope.from.as_ref());
             let to_addresses = get_addresses(envelope.to.as_ref());
 
             log::debug!(
