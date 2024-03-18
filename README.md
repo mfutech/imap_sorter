@@ -6,7 +6,8 @@ Automatically sort email using a connection to a mailbox
 
 Having an independant program to sort a mailbox, whithout relying on a email client like outlook, thunderbird or eM client.
 
-It can be run on a regular basis an sort your inbox (at the moment only sort email in mailbox, but it is easy to change this beaviour.
+It can be run on a regular basis an sort your mailbox. Rules are based on IMAP standard filter, any folder can be sorted. 
+Sorting rules can be tagged, for instance with daily, weekly, monthly or by type of messages (friends, newletters, updates, ...)
 
 ## How to
 
@@ -87,3 +88,27 @@ ssclient -k .\secrets.key -s .\config.json set imap_hostname
 ```
 
 do not forget to remove those three values from config.ini file
+
+
+## help 
+
+```
+> imap_sorter.exe --help
+Process email in IMAP Inbox according to rules
+
+Usage: imap_sorter.exe [OPTIONS]
+
+Options:
+  -c, --config <CONFIG>  where to find config file [default: config.ini]
+  -r, --rules <RULES>    where to file rule YAML file
+  -n, --nomove           do not move message (aka simlation mode)
+  -f, --force            force, execute all rules, even disabled one
+  -s, --silent           no output
+  -v, --verbose          more details about what is going on
+  -d, --debug            much more details about what is going on
+  -t, --tag <TAG>        filter by this tag, only rule matching this tag will be executed
+      --listrules        list all rules
+      --listtags         list all tags
+  -h, --help             Print help
+  -V, --version          Print version
+```
