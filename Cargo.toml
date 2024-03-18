@@ -11,7 +11,6 @@ clap = { version = "4.4.8", features = ["derive"] }
 confy = "0.5.1"
 env_logger = "0.10.0"
 log = "0.4.20"
-securestore = "0.100.0"
 serde = { version = "1.0.190", features = ["derive"] }
 serde_yaml = "0.9.27"
 simple_logger = { version = "4.3.0", default-features = false}
@@ -19,9 +18,14 @@ rustls-connector = { version = "0.18.0", optional = true }
 rustls = {version = "0.23.2", default-features = false }
 imap-proto = "0.16.4"
 
+securestore = { version = "0.100.0", optional = true }
 
 [dependencies.imap]
 #version = "2.4.1"
 version = "3.0.0-alpha.12"
 default-features = false
 features = ["rustls-tls"]
+
+ [features]
+ default = [ "securestore" ]
+ securestore = [ "dep:securestore" ]

@@ -1,7 +1,8 @@
 extern crate imap;
+#[cfg(feature = "securestore")]
 extern crate securestore;
+#[cfg(feature = "securestore")]
 use std::path::Path;
-
 // cli
 use clap::Parser;
 
@@ -118,31 +119,45 @@ fn main() {
         return;
     };
 
-    // connect to secret manager
-    let key_file = Path::new(config.key_path.as_str());
-    let secret_manager = securestore::SecretsManager::load(
-        config.secure_store_path,
-        securestore::KeySource::File(key_file),
-    )
-    .expect("Failed to load SecureStore vault!");
+    let domain: String;
+    let port: u16;
+    let username : String;
+    let password : String;
 
-    // connecting to IMAP server, using parameter from vault (config.json) if exsit if not try config.ini
-    let domain = match secret_manager.get("imap_server") {
-        Ok(hostname) => hostname,
-        Err(_) => config.imap_server,
-    };
-    let domain = domain.as_str();
-    let port: u16 = config.imap_port;
-    let username = match secret_manager.get("imap_username") {
-        Ok(username) => username,
-        Err(_) => config.imap_username,
-    };
-    let password = match secret_manager.get("imap_password") {
-        Ok(password) => password,
-        Err(_) => config.imap_password.clone(),
-    };
-    // let _tls = native_tls::TlsConnector::builder().build().unwrap();
+    #[cfg(not(feature = "securestore"))]
+    {
+         domain = config.imap_server;
+         port = config.imap_port;
+         username = config.imap_username;
+         password = config.imap_password.clone();
+    }
 
+    #[cfg(feature = "securestore")]
+    {
+        // connect to secret manager
+        let key_file = Path::new(config.key_path.as_str());
+        let secret_manager = securestore::SecretsManager::load(
+            config.secure_store_path,
+            securestore::KeySource::File(key_file),
+        )
+        .expect("Failed to load SecureStore vault!");
+
+        // connecting to IMAP server, using parameter from vault (config.json) if exsit if not try config.ini
+        domain = match secret_manager.get("imap_server") {
+            Ok(hostname) => hostname,
+            Err(_) => config.imap_server,
+        };
+         port = config.imap_port;
+         username = match secret_manager.get("imap_username") {
+            Ok(username) => username,
+            Err(_) => config.imap_username,
+        };
+         password = match secret_manager.get("imap_password") {
+            Ok(password) => password,
+            Err(_) => config.imap_password.clone(),
+        };
+    }
+    
     // we pass in the domain twice to check that the server's TLS
     // certificate is valid for the domain we're connecting to.
     let client = match imap::ClientBuilder::new(domain, port).connect() {
