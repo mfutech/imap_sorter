@@ -1,5 +1,6 @@
 extern crate imap;
 extern crate securestore;
+use std::collections::HashSet;
 use std::path::Path;
 
 // cli
@@ -31,6 +32,8 @@ struct Args {
     config: String,
     #[clap(short, long, help = "much more details about what is going on")]
     debug: bool,
+    #[clap(short, long, help = "message id to fetch")]
+    msgid: Option<i64>,
 }
 
 fn main() {
@@ -101,8 +104,15 @@ fn main() {
     // examine inbox (read only)
     imap_session.select("INBOX").unwrap();
 
-    let all_message_id: Vec<u32> = imap_session.search("UNSEEN").unwrap().into_iter().collect();
-    let message_id = all_message_id[0].to_string();
+    let message_id = match args.msgid {
+        Some(msgid) => msgid.to_string(),
+        None => {
+            // search all unseen, collect results and get the index [0] of the result
+            // not pretty but one way to select a first message
+            let r : HashSet<u32> = imap_session.search("UNSEEN").unwrap();
+            r.iter().next().unwrap().to_string()
+        }
+    };
     println!("message_id: {:?}", message_id);
 
     let messages = imap_session.fetch(message_id, "(ENVELOPE RFC822 BODY[HEADER])");
@@ -147,7 +157,10 @@ fn main() {
     let flags = message.flags();
     println!("flags: {:?}", flags);
 
-    println!("message : \n{}", String::from_utf8_lossy(message.body().expect("nobodyhome")));
+    println!(
+        "message : \n{}",
+        String::from_utf8_lossy(message.body().expect("nobodyhome"))
+    );
 
     // be nice to the server and log out
     imap_session.logout().expect("failed to logout");
