@@ -1,41 +1,78 @@
 use crate::rules;
+use imap::ImapConnection;
 use imap_proto::types::Address;
+use std::borrow::Cow;
 
-fn get_addresses(addresses_vec: &Vec<Address<'_>>) -> Result<String, String> {
-    // scan all Vec<Addresses<>> and make a string
-    // of all addreeses in one string coma separated
-    Ok(addresses_vec
-        // goes though all addresses
-        .iter()
-        .map(|addr| {
-            // extract mailbox and host and concatenate with a @
-            format!(
-                // target format
-                "{}@{}",
-                // get mailbox
-                std::str::from_utf8(match addr.mailbox.as_ref() {
-                    // if no host, replace by uknown
-                    Some(mailbox) => mailbox,
-                    _ => "unknown".as_bytes(),
-                })
-                .unwrap(),
-                // get host
-                std::str::from_utf8(match addr.host.as_ref() {
-                    // if no host, replace by uknown
-                    Some(host) => host,
-                    _ => "unknown".as_bytes(),
-                })
-                .unwrap(),
-            )
-        })
-        // collect resutl in a Vec<String>
-        .collect::<Vec<String>>()
-        // join them in a string, separated by ,
-        .join(", "))
+#[derive(Default, Debug)]
+struct Enveloppe {
+    date: String,
+    subject: String,
+    from: String,
+    sender: String,
+    mailbox: String,
+    host: String,
+    reply_to: String,
+    cc: String,
+    bcc: String,
+    in_reply_to: String,
+    message_id: String,
+}
+
+trait AddressExt {
+    fn to_formated(&self) -> String;
+}
+
+impl AddressExt for imap_proto::types::Address<'_> {
+    fn to_formated(&self) -> String {
+        // extract mailbox and host and concatenate with a @
+        format!(
+            // target format
+            "{}{}{}@{}",
+            // get name
+            match self.name.as_ref() {
+                Some(buffer) => format!("<{}> ", String::from_utf8_lossy(buffer.as_ref())),
+                None => "".into(),
+            },
+            // get mailbox
+            match self.mailbox.as_ref() {
+                Some(buffer) => String::from_utf8_lossy(buffer.as_ref()),
+                None => "?".into(),
+            },
+            // get additionnal routing information
+            match self.adl.as_ref() {
+                Some(buffer) => String::from_utf8_lossy(buffer.as_ref()),
+                None => "".into(),
+            },
+            // get host
+            match self.host.as_ref() {
+                Some(buffer) => String::from_utf8_lossy(buffer.as_ref()),
+                None => "?".into(),
+            },
+        )
+    }
+}
+
+fn get_addresses(addresses_vec_opt: Option<&Vec<Address>>) -> String {
+    match addresses_vec_opt {
+        // scan all Vec<Addresses<>> and make a string
+        // of all addreeses in one string coma separated
+        Some(addresses_vec) => {
+            addresses_vec
+                // goes though all addresses
+                .iter()
+                // properly format addreses
+                .map(|addr| addr.to_formated())
+                // collect resutl in a Vec<String>
+                .collect::<Vec<String>>()
+                // join them in a string, separated by ,
+                .join(", ")
+        }
+        _ => "UNKNOWN".to_string(),
+    }
 }
 
 pub fn search_and_move(
-    imap_session: &mut imap::Session<native_tls::TlsStream<std::net::TcpStream>>,
+    imap_session: &mut imap::Session<Box<dyn ImapConnection>>,
     rule: rules::Rule,
     folder: String,
     nomove: bool,
@@ -48,6 +85,7 @@ pub fn search_and_move(
     // RFC 822 dictates the format of the body of e-mails
     let search_set = imap_session.search(rule.filter.clone())?;
     if search_set.len() == 0 {
+        log::info!("nothing to move: {}", rule.name_and_tag());
         return Ok(Some("nothing to move".to_string()));
     }
 
@@ -62,9 +100,8 @@ pub fn search_and_move(
         .collect::<Vec<String>>()
         .join(",");
 
-    let messages = imap_session.fetch(search.clone(), "ALL")?;
-
     if log::log_enabled!(log::Level::Debug) {
+        let messages = imap_session.fetch(search.clone(), "ALL")?;
         // we are in debug mode, let's get all details of messages we are going to move properly formated
 
         // print header of found mails
@@ -76,31 +113,23 @@ pub fn search_and_move(
             to = "to"
         );
 
+        // create a decent value as default for missing header parts
+        let mydefault: &Cow<'_, [u8]> = &Cow::Borrowed("-".as_bytes());
         // iterate on all message an print them
-        for message in &messages {
-            let envelope = message.envelope().expect("message missing envelope");
+        for message in messages.iter() {
+            let envelope = message
+                .envelope()
+                .expect("message missing envelope")
+                .to_owned();
 
-            let date = match envelope.date {
-                Some(date) => std::str::from_utf8(date).expect("Enveloppe date not UTF8"),
-                None => "NODATE",
-            };
+            let date =
+                String::from_utf8_lossy(envelope.date.as_ref().unwrap_or(mydefault).as_ref());
 
             // subject more likely to not me utf8
             let subject =
-                match std::str::from_utf8(envelope.subject.expect("envelopem missing subject")) {
-                    Ok(subject) => subject.to_string(),
-                    Err(error) => format!("Enveloppe subject not UTF8 : {}", error),
-                };
-
-            let from_addresses = match envelope.from.as_ref() {
-                Some(froms) => get_addresses(froms).unwrap(),
-                _ => "FROM_UKN".to_string(),
-            };
-
-            let to_addresses = match envelope.to.as_ref() {
-                Some(tos) => get_addresses(tos).unwrap(),
-                _ => "TO_UNKN".to_string(),
-            };
+                String::from_utf8_lossy(envelope.subject.as_ref().unwrap_or(mydefault).as_ref());
+            let from_addresses = get_addresses(envelope.from.as_ref());
+            let to_addresses = get_addresses(envelope.to.as_ref());
 
             log::debug!(
                 "{date:<22} {subject:<40} {from:<30} {to:<30}",
@@ -112,7 +141,7 @@ pub fn search_and_move(
         }
     };
     // do the actual move or not according to flags and set return a message
-    let message = if (rule.enable && !nomove) || force {
+    let result = if (rule.enable && !nomove) || force {
         // let's move them
         imap_session.mv(search, rule.target)?;
         // and tell them how much we worked
@@ -125,7 +154,7 @@ pub fn search_and_move(
         )
     };
 
-    log::info!("{}", message);
+    log::info!("{}", result);
 
-    Ok(Some(message))
+    Ok(Some(result))
 }
