@@ -3,20 +3,20 @@ use imap::ImapConnection;
 use imap_proto::types::Address;
 use std::borrow::Cow;
 
-#[derive(Default, Debug)]
-struct Enveloppe {
-    date: String,
-    subject: String,
-    from: String,
-    sender: String,
-    mailbox: String,
-    host: String,
-    reply_to: String,
-    cc: String,
-    bcc: String,
-    in_reply_to: String,
-    message_id: String,
-}
+// #[derive(Default, Debug)]
+// struct Enveloppe {
+//     date: String,
+//     subject: String,
+//     from: String,
+//     sender: String,
+//     mailbox: String,
+//     host: String,
+//     reply_to: String,
+//     cc: String,
+//     bcc: String,
+//     in_reply_to: String,
+//     message_id: String,
+// }
 
 trait AddressExt {
     fn to_formated(&self) -> String;

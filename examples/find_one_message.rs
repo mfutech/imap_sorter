@@ -1,7 +1,11 @@
+#[allow(unused_imports)]
+#[allow(dead_code)]
+
 extern crate imap;
 extern crate securestore;
 use std::collections::HashSet;
 use std::path::Path;
+use std::process::exit;
 
 // cli
 use clap::Parser;
@@ -34,6 +38,7 @@ struct Args {
     debug: bool,
     #[clap(short, long, help = "message id to fetch")]
     msgid: Option<i64>,
+    filter: String,
 }
 
 fn main() {
@@ -104,15 +109,13 @@ fn main() {
     // examine inbox (read only)
     imap_session.select("INBOX").unwrap();
 
-    let message_id = match args.msgid {
-        Some(msgid) => msgid.to_string(),
-        None => {
-            // search all unseen, collect results and get the index [0] of the result
-            // not pretty but one way to select a first message
-            let r : HashSet<u32> = imap_session.search("UNSEEN").unwrap();
-            r.iter().next().unwrap().to_string()
-        }
-    };
+    let search_set = imap_session.search(args.filter).expect("search failed");
+    if search_set.len() == 0 {
+        println!("no message found");
+        exit(-1);
+    }
+
+    let message_id = search_set.iter().next().unwrap().to_string();
     println!("message_id: {:?}", message_id);
 
     let messages = imap_session.fetch(message_id, "(ENVELOPE RFC822 BODY[HEADER])");
