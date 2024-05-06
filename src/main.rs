@@ -1,8 +1,8 @@
 extern crate imap;
-extern crate native_tls;
+#[cfg(feature = "securestore")]
 extern crate securestore;
+#[cfg(feature = "securestore")]
 use std::path::Path;
-
 // cli
 use clap::Parser;
 
@@ -24,25 +24,34 @@ use clap;
     about = "Process email in IMAP Inbox according to rules"
 )]
 struct Args {
-    #[clap(short, long, default_value = "config.ini", help = "where to find config file")]
+    #[clap(
+        short,
+        long,
+        default_value = "config.ini",
+        help = "where to find config file"
+    )]
     config: String,
-    #[clap(short, long, help="where to file rule YAML file")]
+    #[clap(short, long, help = "where to file rule YAML file")]
     rules: Option<String>,
-    #[clap(short, long, help="do not move message (aka simlation mode)")]
+    #[clap(short, long, help = "do not move message (aka simlation mode)")]
     nomove: bool,
-    #[clap(short, long, help="force, execute all rules, even disabled one")]
+    #[clap(short, long, help = "force, execute all rules, even disabled one")]
     force: bool,
-    #[clap(short, long, help="no output")]
+    #[clap(short, long, help = "no output")]
     silent: bool,
-    #[clap(short, long, help="more details about what is going on")]
+    #[clap(short, long, help = "more details about what is going on")]
     verbose: bool,
-    #[clap(short, long, help="much more details about what is going on")]
+    #[clap(short, long, help = "much more details about what is going on")]
     debug: bool,
-    #[clap(short, long, help="filter by this tag, only rule matching this tag will be executed")]
+    #[clap(
+        short,
+        long,
+        help = "filter by this tag, only rule matching this tag will be executed"
+    )]
     tag: Option<String>,
-    #[clap(long, help="list all rules")]
+    #[clap(long, help = "list all rules")]
     listrules: bool,
-    #[clap(long, help="list all tags")]
+    #[clap(long, help = "list all tags")]
     listtags: bool,
 }
 
@@ -51,8 +60,7 @@ fn setup_logging(args: &Args) {
     // env_logger::init();
     let logfilter = if args.silent {
         log::LevelFilter::Warn
-    }
-    else if args.verbose { 
+    } else if args.verbose {
         // for verbose level we actully use debug logging
         log::LevelFilter::Debug
     } else if args.debug {
@@ -65,7 +73,7 @@ fn setup_logging(args: &Args) {
         .filter_level(logfilter)
         .format(|buf, record| {
             // we make the "info" or "debug" logging be straight output
-            if record.level() == log::Level::Info || record.level() == log::Level::Debug{
+            if record.level() == log::Level::Info || record.level() == log::Level::Debug {
                 writeln!(buf, "{}", record.args())
             } else {
                 // otherwise print with log level information
@@ -107,7 +115,7 @@ fn main() {
 
     // if only list tags, then only liste tags and exit
     if args.listtags {
-            println!("tags : {}", rules_set.list_tags().join(", "));
+        println!("tags : {}", rules_set.list_tags().join(", "));
         return;
     };
 
@@ -138,7 +146,7 @@ fn main() {
 
     // we pass in the domain twice to check that the server's TLS
     // certificate is valid for the domain we're connecting to.
-    let client = match imap::connect((domain, port), domain, &tls) {
+    let client = match imap::ClientBuilder::new(domain, port).connect() {
         Ok(client) => client,
         Err(error) => {
             log::error!("Error with IMAP server : {}", error);
@@ -167,6 +175,22 @@ fn main() {
                 continue;
             };
 
+            /*log::info!("processing : {}", rule.as_string());
+            let message =
+                match search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove, args.force) {
+                    Ok(success) => format!("{}", success.unwrap()),
+                    Err(failed) => format!("FAILED: {:?}", failed),
+                };
+            log::info!("{}", message);
+            */
+            search_and_move(
+                &mut imap_session,
+                rule,
+                folder_name.clone(),
+                args.nomove,
+                args.force,
+            )
+            .unwrap();
             // log::info!("processing : {}", rule.as_string());
             // let message =
             //     match search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove, args.force) {
@@ -174,8 +198,15 @@ fn main() {
             //         Err(failed) => format!("FAILED: {:?}", failed),
             //     };
             // log::info!("{}", message);
-            
-            search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove, args.force).unwrap();
+
+            search_and_move(
+                &mut imap_session,
+                rule,
+                folder_name.clone(),
+                args.nomove,
+                args.force,
+            )
+            .unwrap();
         }
         log::info!("done");
     }
