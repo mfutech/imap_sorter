@@ -142,7 +142,6 @@ fn main() {
         Ok(password) => password,
         Err(_) => config.imap_password.clone(),
     };
-    let tls = native_tls::TlsConnector::builder().build().unwrap();
 
     // we pass in the domain twice to check that the server's TLS
     // certificate is valid for the domain we're connecting to.
@@ -198,15 +197,6 @@ fn main() {
             //         Err(failed) => format!("FAILED: {:?}", failed),
             //     };
             // log::info!("{}", message);
-
-            search_and_move(
-                &mut imap_session,
-                rule,
-                folder_name.clone(),
-                args.nomove,
-                args.force,
-            )
-            .unwrap();
         }
         log::info!("done");
     }

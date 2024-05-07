@@ -103,9 +103,6 @@ pub fn search_and_move(
 
     if log::log_enabled!(log::Level::Debug) {
         let messages = imap_session.fetch(search.clone(), "ALL")?;
-    let messages = imap_session.fetch(search.clone(), "ALL")?;
-
-    if log::log_enabled!(log::Level::Trace) {
         // we are in debug mode, let's get all details of messages we are going to move properly formated
 
         // print header of found mails
