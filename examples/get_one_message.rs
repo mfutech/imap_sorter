@@ -109,7 +109,7 @@ fn main() {
         None => {
             // search all unseen, collect results and get the index [0] of the result
             // not pretty but one way to select a first message
-            let r : HashSet<u32> = imap_session.search("UNSEEN").unwrap();
+            let r: HashSet<u32> = imap_session.search("UNSEEN").unwrap();
             r.iter().next().unwrap().to_string()
         }
     };
@@ -137,7 +137,7 @@ fn main() {
         panic!("no message");
     };
 
-    let envelope = message.envelope().expect("no envelope in this message");
+    // let envelope = message.envelope().expect("no envelope in this message");
     // println!("-- envelope returned : {:?}", envelope);
 
     let header = match message.header() {

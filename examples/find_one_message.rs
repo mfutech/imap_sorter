@@ -1,9 +1,8 @@
 #[allow(unused_imports)]
 #[allow(dead_code)]
-
 extern crate imap;
 extern crate securestore;
-use std::collections::HashSet;
+// use std::collections::HashSet;
 use std::path::Path;
 use std::process::exit;
 
@@ -140,7 +139,7 @@ fn main() {
         panic!("no message");
     };
 
-    let envelope = message.envelope().expect("no envelope in this message");
+    // let envelope = message.envelope().expect("no envelope in this message");
     // println!("-- envelope returned : {:?}", envelope);
 
     let header = match message.header() {
