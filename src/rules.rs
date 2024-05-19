@@ -40,7 +40,10 @@ impl Rule {
         format!(
             // "{:<25} filter: {:<60} target: {:<15} tags: {:<20}",
             "* rule:\t{}\n\tfilter: {}\n\ttarget: {}\n\ttags: {}",
-            &self.name, &self.filter, &self.target, &self.tags_string()
+            &self.name,
+            &self.filter,
+            &self.target,
+            &self.tags_string()
         )
     }
 
@@ -51,16 +54,16 @@ impl Rule {
     pub fn name_and_tag(&self) -> String {
         let tags = match &self.tags {
             Some(tags) => format!(" [{}]", tags.join(", ")),
-            _ => "".to_string()
+            _ => "".to_string(),
         };
         format!("{}{}", &self.name, tags)
-
     }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct FolderRule {
     pub folder: String,
+    pub folders: Option<Vec<String>>,
     pub rules: Vec<Rule>,
 }
 
@@ -107,6 +110,21 @@ impl RulesSet {
         all_tags.sort();
         all_tags.dedup();
         all_tags
+    }
+
+    pub fn list_folders(&self) -> Vec<String> {
+        let mut all_folders: Vec<String> = Vec::new();
+        let mut all_other_folders: Vec<String> = Vec::new();
+        for folder in &self.folders {
+            all_folders.push(folder.folder.clone());
+            if let Some(folder_list) = &folder.folders {
+                all_other_folders.extend_from_slice(&folder_list)
+            };
+        }
+        all_folders.extend_from_slice(&all_other_folders);
+        all_folders.sort();
+        all_folders.dedup();
+        all_folders
     }
 
     pub fn print(&self) {
