@@ -4,7 +4,7 @@ use serde_yaml;
 use std::fs::File;
 use std::io::BufReader;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Rule {
     pub name: String,
     pub filter: String,
@@ -102,29 +102,58 @@ impl RulesSet {
             .with_context(|| format!("Failed to parse YAML file: {}", file_name))?;
         Ok(rules_set)
     }
+
     pub fn list_tags(&self) -> Vec<String> {
-        let mut all_tags: Vec<String> = Vec::new();
-        for folder in &self.folders {
-            all_tags.extend_from_slice(&folder.list_tags())
-        }
+        let mut all_tags: Vec<String> = self
+            .folders
+            .iter()
+            .flat_map(|fld| fld.list_tags())
+            .collect();
         all_tags.sort();
         all_tags.dedup();
         all_tags
     }
 
     pub fn list_folders(&self) -> Vec<String> {
-        let mut all_folders: Vec<String> = Vec::new();
-        let mut all_other_folders: Vec<String> = Vec::new();
-        for folder in &self.folders {
-            all_folders.push(folder.folder.clone());
-            if let Some(folder_list) = &folder.folders {
-                all_other_folders.extend_from_slice(&folder_list)
-            };
-        }
-        all_folders.extend_from_slice(&all_other_folders);
+        let mut all_folders: Vec<String> = self
+            .folders
+            .iter()
+            .flat_map(|folder| {
+                let mut folders = vec![folder.folder.clone()];
+                if let Some(folder_list) = &folder.folders {
+                    folders.extend(folder_list.clone());
+                }
+                folders
+            })
+            .collect();
+
         all_folders.sort();
         all_folders.dedup();
         all_folders
+    }
+
+    pub fn rules_for_folder(&self, folder: String) -> Vec<Rule> {
+        self.folders
+            .iter()
+            .flat_map(|fld| {
+                // for each folder, that match, collect rules
+                let mut rules: Vec<Rule> = Vec::new();
+
+                // check if this is the folder name
+                if fld.folder == folder {
+                    rules.extend_from_slice(&fld.rules);
+                };
+
+                // if multiple folders are named in the folders (with a s) paratmer then check them all
+                if let Some(folder_list) = &fld.folders {
+                    if folder_list.contains(&folder) {
+                        // matching, then adding
+                        rules.extend_from_slice(&fld.rules)
+                    }
+                }
+                rules
+            })
+            .collect()
     }
 
     pub fn print(&self) {

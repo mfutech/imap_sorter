@@ -161,14 +161,13 @@ fn main() {
         .expect("cannot connect to IMAP server");
 
     // now for each rules we find message and moved them as necessary
-    for folder in rules_set.folders {
-        let folder_name = folder.folder;
+    for folder_name in rules_set.list_folders() {
         log::info!(
             "-------------------- Processing for {} ----------",
-            folder_name
+            &folder_name
         );
 
-        for rule in folder.rules {
+        for rule in rules_set.rules_for_folder(folder_name.clone()) {
             if !rule.match_tag(&args.tag) {
                 log::debug!("skipping   :\n{}", rule.as_string());
                 continue;
