@@ -132,7 +132,8 @@ impl RulesSet {
         all_folders
     }
 
-    pub fn rules_for_folder(&self, folder: String) -> Vec<Rule> {
+    pub fn rules_for_folder(&self, folder: &String) -> Vec<Rule> {
+        let folder = folder.to_owned();
         self.folders
             .iter()
             .flat_map(|fld| {
