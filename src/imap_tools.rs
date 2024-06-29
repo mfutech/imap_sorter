@@ -86,7 +86,6 @@ pub fn search_and_move(
     // RFC 822 dictates the format of the body of e-mails
     let search_set = imap_session.search(rule.filter.clone())?;
     if search_set.len() == 0 {
-        log::info!("nothing to move: {}", rule.name_and_tag());
         log::debug!("nothing to move :{}", rule.name_and_tag());
         return Ok(Some("nothing to move".to_string()));
     }
