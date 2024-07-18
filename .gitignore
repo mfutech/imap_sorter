@@ -8,3 +8,4 @@
 
 /secrets.key
 /secret.json
+*.code-workspace
