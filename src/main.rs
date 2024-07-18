@@ -49,10 +49,14 @@ struct Args {
         help = "filter by this tag, only rule matching this tag will be executed"
     )]
     tag: Option<String>,
+    #[clap(long, help = "limit to processe only designated folder")]
+    folder: Option<String>,
     #[clap(long, help = "list all rules")]
     listrules: bool,
     #[clap(long, help = "list all tags")]
     listtags: bool,
+    #[clap(long, help = "list all folders")]
+    listfolders: bool,
 }
 
 fn setup_logging(args: &Args) {
@@ -119,6 +123,12 @@ fn main() {
         return;
     };
 
+    // if only list folders, then only list folders and exit
+    if args.listfolders {
+        println!("folders : {}", rules_set.list_folders().join(", "));
+        return;
+    };
+
     // connect to secret manager
     let key_file = Path::new(config.key_path.as_str());
     let secret_manager = securestore::SecretsManager::load(
@@ -162,6 +172,14 @@ fn main() {
 
     // now for each rules we find message and moved them as necessary
     for folder_name in rules_set.list_folders() {
+        // test if we have a folder filter
+        if let Some(folder_filter) = args.folder.as_deref() {
+            // skip this iteration if we do not match filter
+            if !folder_name.eq_ignore_ascii_case(folder_filter) {
+                log::debug!("-------------------- Skipping folder : {}", &folder_name);
+                continue;
+            }
+        }
         log::info!(
             "-------------------- Processing for {} ----------",
             &folder_name

@@ -1,9 +1,9 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_yaml;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufReader;
-
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Rule {
     pub name: String,
@@ -115,7 +115,8 @@ impl RulesSet {
     }
 
     pub fn list_folders(&self) -> Vec<String> {
-        let mut all_folders: Vec<String> = self
+        // extract all folders from config, either in name or in folders parameter
+        let all_folders: Vec<String> = self
             .folders
             .iter()
             .flat_map(|folder| {
@@ -127,9 +128,17 @@ impl RulesSet {
             })
             .collect();
 
-        all_folders.sort();
-        all_folders.dedup();
-        all_folders
+        // reduce list to unique folder, while preserving order of folder as defined in configuration file
+        let mut seen = HashSet::new(); // keep track of what has been seen
+        let mut deduplicated = Vec::new(); // deduplicate list of folder
+
+        for folder in all_folders {
+            if seen.insert(folder.clone()) {
+                deduplicated.push(folder.clone());
+            }
+        }
+
+        deduplicated
     }
 
     pub fn rules_for_folder(&self, folder: String) -> Vec<Rule> {
