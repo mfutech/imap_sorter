@@ -50,7 +50,7 @@ struct Args {
         help = "filter by this tag, only rule matching this tag will be executed"
     )]
     tag: Option<String>,
-    #[clap(long, help = "limit to processe only designated folder")]
+    #[clap(short = 'F', long, help = "limit to processe only designated folder")]
     folder: Option<String>,
     #[clap(short, long, help = "apply rules assigned to INBOX on provided folder")]
     onfolder: Option<String>,
