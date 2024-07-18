@@ -13,6 +13,7 @@ mod config;
 mod imap_tools;
 mod rules;
 use crate::imap_tools::*;
+use crate::rules::Rule;
 
 use clap;
 
@@ -51,6 +52,8 @@ struct Args {
     tag: Option<String>,
     #[clap(long, help = "limit to processe only designated folder")]
     folder: Option<String>,
+    #[clap(short, long, help = "apply rules assigned to INBOX on provided folder")]
+    onfolder: Option<String>,
     #[clap(long, help = "list all rules")]
     listrules: bool,
     #[clap(long, help = "list all tags")]
@@ -170,52 +173,43 @@ fn main() {
         .map_err(|e| e.0)
         .expect("cannot connect to IMAP server");
 
-    // now for each rules we find message and moved them as necessary
-    for folder_name in rules_set.list_folders() {
-        // test if we have a folder filter
-        if let Some(folder_filter) = args.folder.as_deref() {
-            // skip this iteration if we do not match filter
-            if !folder_name.eq_ignore_ascii_case(folder_filter) {
-                log::debug!("-------------------- Skipping folder : {}", &folder_name);
-                continue;
-            }
-        }
-        log::info!(
-            "-------------------- Processing for {} ----------",
-            &folder_name
-        );
-
-        for rule in rules_set.rules_for_folder(folder_name.clone()) {
-            if !rule.match_tag(&args.tag) {
-                log::debug!("skipping   :\n{}", rule.as_string());
-                continue;
-            };
-
-            /*log::info!("processing : {}", rule.as_string());
-            let message =
-                match search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove, args.force) {
-                    Ok(success) => format!("{}", success.unwrap()),
-                    Err(failed) => format!("FAILED: {:?}", failed),
-                };
-            log::info!("{}", message);
-            */
-            search_and_move(
+    match args.onfolder {
+        // have been provided with a folder,
+        Some(folder_name) => {
+            let inbox = "INBOX".to_string();
+            let rules = rules_set.rules_for_folder(&inbox);
+            apply_rules_on_folder(
                 &mut imap_session,
-                rule,
-                folder_name.clone(),
+                rules,
+                &folder_name,
+                &args.tag,
                 args.nomove,
                 args.force,
             )
-            .unwrap();
-            // log::info!("processing : {}", rule.as_string());
-            // let message =
-            //     match search_and_move(&mut imap_session, rule, folder_name.clone(), args.nomove, args.force) {
-            //         Ok(success) => format!("{}", success.unwrap()),
-            //         Err(failed) => format!("FAILED: {:?}", failed),
-            //     };
-            // log::info!("{}", message);
         }
-        log::info!("done");
+        // let's do if for all folders
+        None => {
+            // now for each rules we find message and moved them as necessary
+            for folder_name in rules_set.list_folders() {
+                // test if we have a folder filter
+                if let Some(folder_filter) = args.folder.as_deref() {
+                    // skip this iteration if we do not match filter
+                    if !folder_name.eq_ignore_ascii_case(folder_filter) {
+                        log::debug!("-------------------- Skipping folder : {}", &folder_name);
+                        continue;
+                    }
+                }
+                let rules = rules_set.rules_for_folder(&folder_name);
+                apply_rules_on_folder(
+                    &mut imap_session,
+                    rules,
+                    &folder_name,
+                    &args.tag,
+                    args.nomove,
+                    args.force,
+                )
+            }
+        }
     }
     // be nice to the server and log out
     imap_session.logout().expect("failed to logout");

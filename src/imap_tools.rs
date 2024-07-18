@@ -1,4 +1,5 @@
 use crate::rules;
+use crate::rules::Rule;
 use imap::ImapConnection;
 use imap_proto::types::Address;
 use std::borrow::Cow;
@@ -85,7 +86,6 @@ pub fn search_and_move(
     // RFC 822 dictates the format of the body of e-mails
     let search_set = imap_session.search(rule.filter.clone())?;
     if search_set.len() == 0 {
-        log::info!("nothing to move: {}", rule.name_and_tag());
         log::debug!("nothing to move :{}", rule.name_and_tag());
         return Ok(Some("nothing to move".to_string()));
     }
@@ -158,4 +158,28 @@ pub fn search_and_move(
     log::info!("{}", result);
 
     Ok(Some(result))
+}
+
+pub fn apply_rules_on_folder(
+    mut imap_session: &mut imap::Session<Box<dyn ImapConnection>>,
+    rules : Vec<Rule>,
+    folder_name: &String,
+    tag: &Option<String>,
+    nomove: bool,
+    force: bool,
+) {
+    log::info!(
+        "-------------------- Processing for {} ----------",
+        folder_name
+    );
+
+    for rule in rules {
+        if !rule.match_tag(tag) {
+            log::debug!("skipping   :\n{}", rule.as_string());
+            continue;
+        };
+
+        search_and_move(&mut imap_session, rule, folder_name.clone(), nomove, force).unwrap();
+    }
+    log::info!("done");
 }
