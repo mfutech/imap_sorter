@@ -13,7 +13,7 @@ mod config;
 mod imap_tools;
 mod rules;
 use crate::imap_tools::*;
-use crate::rules::Rule;
+// use crate::rules::Rule;
 
 use clap;
 
@@ -173,11 +173,12 @@ fn main() {
         .map_err(|e| e.0)
         .expect("cannot connect to IMAP server");
 
-    match args.onfolder {
+    match args.folder {
         // have been provided with a folder,
         Some(folder_name) => {
             let inbox = "INBOX".to_string();
             let rules = rules_set.rules_for_folder(&inbox);
+            log::info!("Applying rules for {} on folder: {}", inbox, folder_name);
             apply_rules_on_folder(
                 &mut imap_session,
                 rules,
